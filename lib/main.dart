@@ -1,0 +1,39 @@
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:kasir_app/src/core/app_router.dart';
+import 'package:kasir_app/src/core/services/database_service.dart';
+import 'src/core/service_locator.dart';
+import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  setupLocator();
+  await getIt<DatabaseService>().database;
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Sediakan AuthBloc di level tertinggi aplikasi
+    return BlocProvider(
+      create: (context) => AuthBloc()..add(AppStarted()),
+      child: Builder(builder: (context) {
+        return MaterialApp.router(
+          title: 'Aplikasi Kasir',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+          ),
+          // Gunakan router yang sudah mendengarkan AuthBloc
+          routerConfig: AppRouter(context.read<AuthBloc>()).router,
+        );
+      }),
+    );
+  }
+}

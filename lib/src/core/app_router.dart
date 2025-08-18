@@ -1,0 +1,148 @@
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kasir_app/src/data/models/user_model.dart';
+import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
+import 'package:kasir_app/src/features/auth/login_page.dart';
+import 'package:kasir_app/src/features/auth/splash_page.dart';
+import 'package:kasir_app/src/features/products/products_page.dart';
+import 'package:kasir_app/src/features/reports/reports_page.dart';
+import 'package:kasir_app/src/features/settings/printer_settings_page.dart';
+import 'package:kasir_app/src/features/transaction/transaction_page.dart';
+import 'package:kasir_app/src/features/users/user_management_page.dart';
+import 'package:kasir_app/src/features/main_wrapper.dart';
+import 'package:kasir_app/src/core/service_locator.dart';
+import 'package:kasir_app/src/data/repositories/product_repository.dart';
+import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
+
+class AppRouter {
+  final AuthBloc authBloc;
+  GoRouter get router => _router;
+
+  AppRouter(this.authBloc);
+
+  late final GoRouter _router = GoRouter(
+    initialLocation: '/splash',
+    debugLogDiagnostics: true,
+    refreshListenable: GoRouterRefreshStream(authBloc.stream),
+    routes: [
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (context, state) => const LoginPage(),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainWrapper(navigationShell: navigationShell);
+        },
+        branches: [
+          // Kasir (TransactionPage)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                name: 'home',
+                builder: (context, state) => const TransactionPage(),
+              ),
+            ],
+          ),
+          // Produk (ProductsPage)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/products',
+                name: 'products',
+                builder: (context, state) => BlocProvider(
+                  create: (context) => ProductBloc(
+                    getIt<ProductRepository>(),
+                  )..add(LoadProducts()),
+                  child: const ProductsPage(),
+                ),
+              ),
+            ],
+          ),
+          // Laporan (ReportsPage)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/reports',
+                name: 'reports',
+                builder: (context, state) => const ReportsPage(),
+              ),
+            ],
+          ),
+          // Pengguna (UserManagementPage)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/users',
+                name: 'users',
+                builder: (context, state) => const UserManagementPage(),
+              ),
+            ],
+          ),
+          // Pengaturan (PrinterSettingsPage)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings/printer',
+                name: 'printer-settings',
+                builder: (context, state) => const PrinterSettingsPage(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+    redirect: (BuildContext context, GoRouterState state) {
+      final authState = context.read<AuthBloc>().state;
+      final location = state.matchedLocation;
+
+      debugPrint('Redirecting...');
+      debugPrint('  Auth State: ${authState.runtimeType}');
+      debugPrint('  Current Location: $location');
+
+      final isAuth = authState is AuthenticationAuthenticated;
+      final isLoggingIn = location == '/login';
+      final isSplashing = location == '/splash';
+
+      // If not authenticated, and not on splash or login page, redirect to splash
+      if (!isAuth && !isLoggingIn && !isSplashing) {
+        debugPrint('  Redirecting to /splash (Not Auth, Not Login, Not Splash)');
+        return '/splash';
+      }
+
+      // If authenticated, and trying to access splash or login, redirect to home
+      if (isAuth && (isLoggingIn || isSplashing)) {
+        debugPrint('  Redirecting to / (Auth, Login or Splash)');
+        return '/';
+      }
+
+      // Admin access rules (keep as is)
+      final userRole = isAuth ? authState.user.role : null;
+      final adminRoutes = ['/products', '/reports', '/users', '/settings/printer'];
+      if (isAuth && userRole == UserRole.employee && adminRoutes.contains(location)) {
+        debugPrint('  Redirecting to / (Employee trying to access admin route)');
+        return '/';
+      }
+
+      // Allow navigation
+      debugPrint('  Allowing navigation');
+      return null;
+    },
+  );
+}
+
+// Helper class untuk membuat GoRouter mendengarkan stream BLoC
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    stream.asBroadcastStream().listen((dynamic _) => notifyListeners());
+  }
+}
