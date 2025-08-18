@@ -62,10 +62,10 @@ class UserManagementPage extends StatelessWidget {
   }
 
   void _showAddUserDialog(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
-    final _usernameController = TextEditingController();
-    final _passwordController = TextEditingController();
-    UserRole _selectedRole = UserRole.employee;
+    final formKey = GlobalKey<FormState>();
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    UserRole selectedRole = UserRole.employee;
 
     showDialog(
       context: context,
@@ -73,13 +73,13 @@ class UserManagementPage extends StatelessWidget {
         return AlertDialog(
           title: const Text('Tambah Pengguna Baru'),
           content: Form(
-            key: _formKey,
+            key: formKey,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
-                    controller: _usernameController,
+                    controller: usernameController,
                     decoration: const InputDecoration(labelText: 'Username'),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Username tidak boleh kosong';
@@ -87,7 +87,7 @@ class UserManagementPage extends StatelessWidget {
                     },
                   ),
                   TextFormField(
-                    controller: _passwordController,
+                    controller: passwordController,
                     decoration: const InputDecoration(labelText: 'Password'),
                     obscureText: true,
                     validator: (value) {
@@ -98,7 +98,7 @@ class UserManagementPage extends StatelessWidget {
                   ),
                   StatefulBuilder(builder: (context, setState) {
                     return DropdownButtonFormField<UserRole>(
-                      value: _selectedRole,
+                      initialValue: selectedRole,
                       decoration: const InputDecoration(labelText: 'Peran'),
                       items: UserRole.values.map((UserRole role) {
                         return DropdownMenuItem<UserRole>(
@@ -108,7 +108,7 @@ class UserManagementPage extends StatelessWidget {
                       }).toList(),
                       onChanged: (UserRole? newValue) {
                         setState(() {
-                          _selectedRole = newValue!;
+                          selectedRole = newValue!;
                         });
                       },
                     );
@@ -124,11 +124,11 @@ class UserManagementPage extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
-                if (_formKey.currentState!.validate()) {
+                if (formKey.currentState!.validate()) {
                   context.read<UserBloc>().add(AddUser(
-                        username: _usernameController.text,
-                        password: _passwordController.text,
-                        role: _selectedRole,
+                        username: usernameController.text,
+                        password: passwordController.text,
+                        role: selectedRole,
                       ));
                   Navigator.pop(dialogContext);
                 }

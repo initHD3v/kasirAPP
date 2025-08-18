@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kasir_app/src/core/app_router.dart';
 import 'package:kasir_app/src/core/services/database_service.dart';
 import 'src/core/service_locator.dart';
+import 'package:kasir_app/src/data/repositories/product_repository.dart';
+import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
+import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 
 void main() async {
@@ -22,16 +25,21 @@ class MyApp extends StatelessWidget {
     return BlocProvider(
       create: (context) => AuthBloc()..add(AppStarted()),
       child: Builder(builder: (context) {
-        return MaterialApp.router(
-          title: 'Aplikasi Kasir',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-            useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+        return BlocProvider(
+          create: (context) => ProductBloc(
+            getIt<ProductRepository>(),
+          )..add(LoadProducts()),
+          child: MaterialApp.router(
+            title: 'Aplikasi Kasir',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+              useMaterial3: true,
+              scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+            ),
+            // Gunakan router yang sudah mendengarkan AuthBloc
+            routerConfig: AppRouter(context.read<AuthBloc>()).router,
           ),
-          // Gunakan router yang sudah mendengarkan AuthBloc
-          routerConfig: AppRouter(context.read<AuthBloc>()).router,
         );
       }),
     );

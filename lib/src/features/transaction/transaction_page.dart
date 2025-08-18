@@ -9,10 +9,11 @@ import 'package:kasir_app/src/core/services/printing_service.dart';
 import 'package:kasir_app/src/data/models/cart_item_model.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
-import 'package:kasir_app/src/data/repositories/product_repository.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
+import 'package:kasir_app/src/features/products/bloc/product_event.dart';
+import 'package:kasir_app/src/features/products/bloc/product_state.dart';
 import 'package:kasir_app/src/features/transaction/bloc/cart_bloc.dart';
 import 'package:kasir_app/src/features/transaction/bloc/transaction_bloc.dart';
 import 'dart:async';
@@ -54,16 +55,19 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context); // Get messenger here
                 if (dialogContext.mounted) { // Add this check
                   Navigator.pop(dialogContext);
                 }
                 try {
                   await getIt<PrintingService>().printReceipt(transaction);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!context.mounted) return; // Add this check
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Struk dikirim ke printer.'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!context.mounted) return; // Add this check
+                  messenger.showSnackBar(
                     SnackBar(content: Text('Gagal mencetak: ${e.toString()}'), backgroundColor: Colors.red),
                   );
                 }
@@ -86,11 +90,6 @@ class _TransactionPageState extends State<TransactionPage> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => ProductBloc(
-            getIt<ProductRepository>(),
-          )..add(LoadProducts()),
-        ),
-        BlocProvider(
           create: (context) => CartBloc(),
         ),
         BlocProvider(
@@ -102,6 +101,7 @@ class _TransactionPageState extends State<TransactionPage> {
       child: BlocListener<TransactionBloc, TransactionState>(
         listener: (context, state) {
           if (state is TransactionInProgress) {
+            debugPrint('TransactionInProgress state received');
             showDialog(
               context: context,
               barrierDismissible: false,
@@ -112,11 +112,13 @@ class _TransactionPageState extends State<TransactionPage> {
             );
           }
           if (state is TransactionSuccess) {
+            debugPrint('TransactionSuccess state received');
             WidgetsBinding.instance.addPostFrameCallback((_) async {
               await _handleTransactionSuccess(context, state.transaction);
             });
           }
           if (state is TransactionFailure) {
+            debugPrint('TransactionFailure state received: ${state.error}');
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_loadingDialogContext != null && _loadingDialogContext!.mounted) {
                 Navigator.pop(_loadingDialogContext!); // Close loading dialog using captured context
@@ -133,7 +135,7 @@ class _TransactionPageState extends State<TransactionPage> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 1,
-            shadowColor: Colors.black.withOpacity(0.1),
+            shadowColor: Colors.black.withAlpha(26),
             title: const Text(
               'Kasir',
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
@@ -243,18 +245,19 @@ class _ProductGridState extends State<ProductGrid> {
   @override
   void initState() {
     super.initState();
-    // Pastikan produk dimuat saat pertama kali widget dibuat
-    // Ini sudah dipanggil di BlocProvider di TransactionPage, jadi tidak perlu di sini lagi
+    debugPrint('ProductGrid initState');
   }
 
   @override
   void dispose() {
+    debugPrint('ProductGrid dispose');
     _searchController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('ProductGrid build');
     return Container(
       color: const Color(0xFFF5F5F7),
       child: Column(
@@ -284,6 +287,7 @@ class _ProductGridState extends State<ProductGrid> {
               ),
               onChanged: (value) {
                 _debouncer.run(() {
+                  debugPrint('Product search query: $value');
                   context.read<ProductBloc>().add(LoadProducts(query: value));
                 });
               },
@@ -292,10 +296,13 @@ class _ProductGridState extends State<ProductGrid> {
           Expanded(
             child: BlocBuilder<ProductBloc, ProductState>(
               builder: (context, state) {
+                debugPrint('ProductGrid BlocBuilder rebuild. Current state: ${state.runtimeType}');
                 if (state is ProductLoading) {
+                  debugPrint('ProductGrid: State is ProductLoading');
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is ProductLoaded) {
+                  debugPrint('ProductGrid: State is ProductLoaded. Products count: ${state.products.length}');
                   if (state.products.isEmpty) {
                     return const Center(
                       child: Text('Tidak ada produk. Silakan ke Manajemen Produk.'),
@@ -375,6 +382,7 @@ class _ProductGridState extends State<ProductGrid> {
                   );
                 }
                 if (state is ProductError) {
+                  debugPrint('ProductGrid: State is ProductError: ${state.message}');
                   return Center(child: Text('Error: ${state.message}'));
                 }
                 return const SizedBox.shrink();
@@ -486,14 +494,39 @@ class _CartPanelState extends State<CartPanel> {
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
-                      final amountPaid = double.tryParse(value.replaceAll('.', '')) ?? 0.0; // Remove existing dots for parsing
+                      // 1. Clean the input for parsing (remove all non-digit characters (except for a single decimal point if needed))
+                      // For ID locale, thousands separator is '.', decimal is ','.
+                      // If the user types '45.000', we want to parse 45000.
+                      // If the user types '45,500', we want to parse 45.500.
+                      // Let's assume input is always integer for now, so just remove non-digits.
+                      final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+                      final parsedAmount = double.tryParse(cleanValue) ?? 0.0;
+
+                      // 2. Update the change calculation
                       setState(() {
-                        _change = amountPaid - cartState.total;
-                        _amountPaidController.value = TextEditingValue( // Update controller with formatted text
-                          text: NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(amountPaid),
-                          selection: TextSelection.collapsed(offset: NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(amountPaid).length),
-                        );
+                        _change = parsedAmount - cartState.total;
                       });
+
+                      // 3. Format the text for display in the controller
+                      // Only update if the parsed amount is not zero, to avoid formatting empty string
+                      if (parsedAmount > 0) {
+                        final formattedText = NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(parsedAmount);
+                        // Prevent infinite loop by only updating if text actually changes
+                        if (_amountPaidController.text != formattedText) {
+                          _amountPaidController.value = TextEditingValue(
+                            text: formattedText,
+                            selection: TextSelection.collapsed(offset: formattedText.length),
+                          );
+                        }
+                      } else {
+                        // If parsed amount is 0 (e.g., empty input), clear the controller text
+                        if (_amountPaidController.text.isNotEmpty) {
+                          _amountPaidController.value = TextEditingValue(
+                            text: '',
+                            selection: TextSelection.collapsed(offset: 0),
+                          );
+                        }
+                      }
                     },
                   ),
                   const SizedBox(height: 20),
@@ -682,7 +715,7 @@ class Debouncer {
 
   Debouncer({this.milliseconds = 500});
 
-  run(VoidCallback action) {
+  void run(VoidCallback action) {
     if (_timer != null) {
       _timer!.cancel();
     }

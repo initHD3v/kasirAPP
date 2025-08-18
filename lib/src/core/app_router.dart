@@ -11,10 +11,10 @@ import 'package:kasir_app/src/features/reports/reports_page.dart';
 import 'package:kasir_app/src/features/settings/printer_settings_page.dart';
 import 'package:kasir_app/src/features/transaction/transaction_page.dart';
 import 'package:kasir_app/src/features/users/user_management_page.dart';
+import 'package:kasir_app/src/features/transaction/transaction_detail_page.dart';
+import 'package:kasir_app/src/data/models/transaction_model.dart';
+
 import 'package:kasir_app/src/features/main_wrapper.dart';
-import 'package:kasir_app/src/core/service_locator.dart';
-import 'package:kasir_app/src/data/repositories/product_repository.dart';
-import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -37,6 +37,14 @@ class AppRouter {
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
+      GoRoute(
+        path: '/transaction_detail',
+        name: 'transaction_detail',
+        builder: (context, state) {
+          final transaction = state.extra as TransactionModel;
+          return TransactionDetailPage(transaction: transaction);
+        },
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainWrapper(navigationShell: navigationShell);
@@ -58,12 +66,7 @@ class AppRouter {
               GoRoute(
                 path: '/products',
                 name: 'products',
-                builder: (context, state) => BlocProvider(
-                  create: (context) => ProductBloc(
-                    getIt<ProductRepository>(),
-                  )..add(LoadProducts()),
-                  child: const ProductsPage(),
-                ),
+                builder: (context, state) => const ProductsPage(),
               ),
             ],
           ),

@@ -17,3 +17,10 @@ class LoadReports extends ReportsEvent {
   @override
   List<Object> get props => [startTime, endTime];
 }
+
+class DeleteAllTransactions extends ReportsEvent {
+  const DeleteAllTransactions();
+
+  @override
+  List<Object> get props => [];
+}

@@ -58,4 +58,9 @@ class TransactionRepository {
       }
     });
   }
+
+  Future<void> deleteAllTransactions() async {
+    final db = await _databaseService.database;
+    await db.delete('transactions');
+  }
 }

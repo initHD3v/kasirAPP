@@ -1,7 +1,6 @@
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:kasir_app/src/data/models/user_model.dart';
 import 'package:kasir_app/src/data/repositories/auth_repository.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 

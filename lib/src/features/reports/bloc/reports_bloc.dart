@@ -12,6 +12,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
 
   ReportsBloc(this._transactionRepository) : super(ReportsInitial()) {
     on<LoadReports>(_onLoadReports);
+    on<DeleteAllTransactions>(_onDeleteAllTransactions);
   }
 
   void _onLoadReports(LoadReports event, Emitter<ReportsState> emit) async {
@@ -87,4 +88,17 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
       emit(ReportsError(e.toString()));
     }
   }
+
+  void _onDeleteAllTransactions(DeleteAllTransactions event, Emitter<ReportsState> emit) async {
+    emit(ReportsLoading()); // Or a specific DeletingReports state
+    try {
+      await _transactionRepository.deleteAllTransactions();
+      // After deletion, reload the reports to show an empty list or updated data
+      add(LoadReports(startTime: DateTime.now().subtract(const Duration(days: 30)), endTime: DateTime.now())); // Reload for a month
+    } catch (e) {
+      emit(ReportsError(e.toString()));
+    }
+  }
+
+  
 }

@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
+        android:enableOnBackInvokedCallback="true"
         android:label="kasir_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

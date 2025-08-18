@@ -50,4 +50,17 @@ class UserRepository {
       whereArgs: [id],
     );
   }
+
+  Future<UserModel?> getUserById(String id) async {
+    final db = await _databaseService.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return UserModel.fromMap(maps.first);
+    }
+    return null;
+  }
 }

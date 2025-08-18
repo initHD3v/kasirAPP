@@ -5,6 +5,7 @@ import 'package:kasir_app/src/data/models/cart_item_model.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart'; // Added for debugPrint
 
 part 'transaction_event.dart';
 part 'transaction_state.dart';
@@ -20,9 +21,9 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     ProcessTransaction event,
     Emitter<TransactionState> emit,
   ) async {
-    print('ProcessTransaction event received');
+    debugPrint('TransactionBloc: _onProcessTransaction started');
     emit(TransactionInProgress());
-    print('Emitted TransactionInProgress');
+    debugPrint('TransactionBloc: Emitted TransactionInProgress');
     try {
       final newTransaction = TransactionModel(
         id: const Uuid().v4(),
@@ -35,15 +36,15 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         createdAt: DateTime.now(),
       );
 
-      print('Adding transaction to repository');
+      debugPrint('TransactionBloc: Saving transaction to repository');
       await _transactionRepository.addTransaction(newTransaction);
-      print('Transaction added to repository');
+      debugPrint('TransactionBloc: Transaction saved');
       emit(TransactionSuccess(newTransaction));
-      print('Emitted TransactionSuccess');
+      debugPrint('TransactionBloc: Emitted TransactionSuccess');
     } catch (e) {
-      print('Error in _onProcessTransaction: ${e.toString()}');
+      debugPrint('TransactionBloc: Error during transaction processing: $e');
       emit(TransactionFailure(e.toString()));
-      print('Emitted TransactionFailure');
+      debugPrint('TransactionBloc: Emitted TransactionFailure');
     }
   }
 }

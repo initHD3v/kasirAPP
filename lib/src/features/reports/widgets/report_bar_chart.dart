@@ -16,7 +16,7 @@ class ReportBarChart extends StatelessWidget {
           drawVerticalLine: false,
           getDrawingHorizontalLine: (value) {
             return FlLine(
-              color: Colors.grey.withOpacity(0.5),
+              color: Colors.grey.withAlpha(128),
               strokeWidth: 0.5,
             );
           },
@@ -76,7 +76,7 @@ class ReportBarChart extends StatelessWidget {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.indigo.withOpacity(0.3),
+              color: Colors.indigo.withAlpha(77),
             ),
           ),
         ],

@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +6,7 @@ import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:kasir_app/src/features/reports/bloc/reports_bloc.dart';
 import 'package:kasir_app/src/features/reports/widgets/report_bar_chart.dart';
+
 
 
 enum ReportType { daily, weekly, monthly }
@@ -20,6 +20,37 @@ class ReportsPage extends StatefulWidget {
 
 class _ReportsPageState extends State<ReportsPage> {
   ReportType _selectedReportType = ReportType.daily;
+
+  void _showDeleteAllConfirmation(BuildContext context, ReportsBloc bloc) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Hapus Semua Transaksi'),
+          content: const Text('Apakah Anda yakin ingin menghapus semua riwayat transaksi? Tindakan ini tidak dapat diurungkan.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Batal'),
+              onPressed: () {
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+            ),
+            TextButton(
+              child: const Text('Hapus Semua', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                context.read<ReportsBloc>().add(DeleteAllTransactions());
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +69,19 @@ class _ReportsPageState extends State<ReportsPage> {
             onPressed: () => GoRouter.of(context).go('/'),
           ),
           centerTitle: true, // Center the title
+          actions: [
+            BlocBuilder<ReportsBloc, ReportsState>(
+              builder: (context, state) {
+                return IconButton(
+                  icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                  onPressed: () {
+                    final bloc = context.read<ReportsBloc>();
+                    _showDeleteAllConfirmation(context, bloc);
+                  },
+                );
+              },
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
@@ -241,6 +285,9 @@ class _ReportContentState extends State<ReportContent> {
                               title: Text('ID: ${tx.id.substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                               subtitle: Text(DateFormat('dd MMM yyyy, HH:mm').format(tx.createdAt)),
                               trailing: Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(tx.totalAmount), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                              onTap: () {
+                                context.go('/transaction_detail', extra: tx);
+                              },
                             ),
                           );
                         },

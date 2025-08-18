@@ -42,7 +42,9 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
         _devices = devices;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context); // Get messenger before await
+      if (!context.mounted) return;
+      messenger.showSnackBar(
         SnackBar(content: Text('Gagal memindai perangkat: $e'), backgroundColor: Colors.red),
       );
     } finally {
@@ -53,8 +55,10 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   }
 
   void _selectPrinter(BluetoothDevice device) async {
+    final messenger = ScaffoldMessenger.of(context); // Get messenger before await
     await _printingService.savePrinter(device);
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (!context.mounted) return;
+    messenger.showSnackBar(
       SnackBar(content: Text('${device.name} disimpan sebagai printer utama.'), backgroundColor: Colors.green),
     );
     _loadSavedPrinter(); // Refresh saved printer info

@@ -1,5 +1,6 @@
 
-part of 'product_bloc.dart';
+import 'package:equatable/equatable.dart';
+import 'package:kasir_app/src/data/models/product_model.dart';
 
 abstract class ProductEvent extends Equatable {
   const ProductEvent();

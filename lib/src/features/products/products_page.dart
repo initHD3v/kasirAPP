@@ -7,10 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/data/models/product_model.dart';
-import 'package:kasir_app/src/data/repositories/product_repository.dart';
+
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
+import 'package:kasir_app/src/features/products/bloc/product_event.dart';
+import 'package:kasir_app/src/features/products/bloc/product_state.dart';
 import 'package:uuid/uuid.dart';
 
 class ProductsPage extends StatelessWidget {
@@ -18,11 +19,7 @@ class ProductsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ProductBloc(
-        getIt<ProductRepository>(),
-      )..add(LoadProducts()),
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text('Manajemen Produk'),
           backgroundColor: Colors.white,
@@ -49,12 +46,6 @@ class ProductsPage extends StatelessWidget {
                 separatorBuilder: (context, index) => const Divider(),
                 itemBuilder: (context, index) {
                   final product = state.products[index];
-                  print('Product: ${product.name}, Image URL: ${product.imageUrl != null ? 'Present' : 'Null'}');
-                  if (product.imageUrl != null) {
-                    print('Image URL length: ${product.imageUrl!.length}');
-                    // Optionally, print a snippet of the base64 string if it's not too long
-                    // print('Image URL snippet: ${product.imageUrl!.substring(0, product.imageUrl!.length > 50 ? 50 : product.imageUrl!.length)}...');
-                  }
                   return ListTile(
                     leading: product.imageUrl != null
                         ? CircleAvatar(
@@ -113,7 +104,6 @@ class ProductsPage extends StatelessWidget {
             child: const Icon(Icons.add, color: Colors.white),
           );
         }),
-      ),
     );
   }
 
@@ -162,7 +152,6 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _costController = TextEditingController(); // New controller for cost
   
   File? _pickedImageFile; // Use File for picked image
   String? _existingImageUrl; // To store existing image URL from product

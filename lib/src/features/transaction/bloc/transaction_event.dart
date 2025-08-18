@@ -1,7 +1,4 @@
 
-import 'package:equatable/equatable.dart';
-import 'package:kasir_app/src/data/models/cart_item_model.dart';
-
 part of 'transaction_bloc.dart';
 
 abstract class TransactionEvent extends Equatable {
