@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -113,16 +112,16 @@ class AppRouter {
 
       final isAuth = authState is AuthenticationAuthenticated;
       final isLoggingIn = location == '/login';
-      final isSplashing = location == '/splash';
+      final isSplashing = location == '/splash'; // Keep this for initialLocation check
 
-      // If not authenticated, and not on splash or login page, redirect to splash
-      if (!isAuth && !isLoggingIn && !isSplashing) {
-        debugPrint('  Redirecting to /splash (Not Auth, Not Login, Not Splash)');
-        return '/splash';
+      // If not authenticated, and not on login page, redirect to login
+      if (!isAuth && !isLoggingIn) {
+        debugPrint('  Redirecting to /login (Not Auth, Not Login)');
+        return '/login';
       }
 
       // If authenticated, and trying to access splash or login, redirect to home
-      if (isAuth && (isLoggingIn || isSplashing)) {
+      if (isAuth && (isLoggingIn || isSplashing)) { // Use isSplashing here for initial redirect
         debugPrint('  Redirecting to / (Auth, Login or Splash)');
         return '/';
       }

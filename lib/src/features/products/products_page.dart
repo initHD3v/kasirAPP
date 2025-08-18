@@ -213,7 +213,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                       : (_existingImageUrl != null
                           ? MemoryImage(base64Decode(_existingImageUrl!))
                           : null), // Show existing image or picked image
-                  child: _pickedImageFile == null && _existingImageUrl == null
+                  child: (_pickedImageFile == null && _existingImageUrl == null)
                       ? Icon(Icons.camera_alt, size: 40, color: Colors.grey[800])
                       : null,
                 ),

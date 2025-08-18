@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kasir_app/src/core/app_router.dart';
@@ -8,6 +7,7 @@ import 'package:kasir_app/src/data/repositories/product_repository.dart';
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
+import 'package:kasir_app/src/data/repositories/auth_repository.dart'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Sediakan AuthBloc di level tertinggi aplikasi
     return BlocProvider(
-      create: (context) => AuthBloc()..add(AppStarted()),
+      create: (context) => AuthBloc(getIt<AuthRepository>())..add(AppStarted()),
       child: Builder(builder: (context) {
         return BlocProvider(
           create: (context) => ProductBloc(

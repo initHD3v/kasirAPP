@@ -1,37 +1,31 @@
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
+import 'package:kasir_app/src/data/repositories/auth_repository.dart'; // Import AuthRepository
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  // UserModel? currentUser;
+  final AuthRepository _authRepository; // Declare the repository
 
-  AuthBloc() : super(AuthenticationUnauthenticated()) {
+  AuthBloc(this._authRepository) : super(AuthenticationUnauthenticated()) {
     on<LoggedIn>(_onLoggedIn);
     on<LoggedOut>(_onLoggedOut);
-    on<AppStarted>(_onAppStarted); // Add this line
+    on<AppStarted>(_onAppStarted);
   }
 
   void _onLoggedIn(LoggedIn event, Emitter<AuthState> emit) {
-    // this.currentUser = event.user;
     emit(AuthenticationAuthenticated(event.user));
   }
 
-  void _onLoggedOut(LoggedOut event, Emitter<AuthState> emit) {
-    // this.currentUser = null;
+  void _onLoggedOut(LoggedOut event, Emitter<AuthState> emit) async {
+    await _authRepository.logout(); // Call the logout method
     emit(AuthenticationUnauthenticated());
   }
 
-  // Add this method
   void _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
-    // Simulate an authentication check
-    await Future.delayed(const Duration(seconds: 2)); // Simulate network delay
-
-    // For now, let's assume the user is unauthenticated by default
-    // In a real app, you would check for a token, user session, etc.
+    await Future.delayed(const Duration(seconds: 2));
     emit(AuthenticationUnauthenticated());
   }
 }

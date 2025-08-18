@@ -1,0 +1,12 @@
+feat: Implementasi fitur hapus semua transaksi dan perbaikan bug
+
+Memperbaiki:
+- Error `Provider` pada halaman laporan saat menghapus semua transaksi.
+- Menghapus kode dan import yang tidak terpakai.
+
+Fitur baru:
+- Menambahkan fungsionalitas untuk menghapus semua data transaksi dari halaman laporan.
+
+Catatan:
+- Peringatan `OnBackInvokedCallback` masih muncul meskipun atribut sudah ditambahkan di `AndroidManifest.xml`. Ini mungkin masalah lingkungan.
+- Peringatan `unnecessary_null_comparison` di `products_page.dart` belum teratasi.

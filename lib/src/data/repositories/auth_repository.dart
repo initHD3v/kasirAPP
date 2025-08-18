@@ -32,6 +32,11 @@ class AuthRepository {
   }
 
   // Di masa depan, kita bisa tambahkan fungsi lain seperti:
-  // Future<void> logout() async { ... }
+    Future<void> logout() async {
+    // Implementasi logout: Hapus token, sesi, atau data pengguna yang tersimpan
+    // Contoh: await _secureStorage.delete(key: 'user_token');
+    // Untuk saat ini, kita hanya mengembalikan Future yang selesai
+    return Future.value();
+  }
   // Future<UserModel?> getCurrentUser() async { ... }
 }
