@@ -20,6 +20,7 @@ class ReportsPage extends StatefulWidget {
 
 class _ReportsPageState extends State<ReportsPage> {
   ReportType _selectedReportType = ReportType.daily;
+  late ReportsBloc _reportsBloc;
 
   void _showDeleteAllConfirmation(BuildContext context, ReportsBloc bloc) {
     showDialog(
@@ -40,7 +41,7 @@ class _ReportsPageState extends State<ReportsPage> {
             TextButton(
               child: const Text('Hapus Semua', style: TextStyle(color: Colors.red)),
               onPressed: () {
-                context.read<ReportsBloc>().add(DeleteAllTransactions());
+                bloc.add(DeleteAllTransactions());
                 if (dialogContext.mounted) {
                   Navigator.of(dialogContext).pop();
                 }
@@ -56,86 +57,92 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => ReportsBloc(getIt<TransactionRepository>()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Laporan Penjualan',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0, // Remove shadow for a flatter look
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => GoRouter.of(context).go('/'),
-          ),
-          centerTitle: true, // Center the title
-          actions: [
-            BlocBuilder<ReportsBloc, ReportsState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                  onPressed: () {
-                    final bloc = context.read<ReportsBloc>();
-                    _showDeleteAllConfirmation(context, bloc);
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Filter Chips
-              Center( // Center the segmented button
-                child: SegmentedButton<ReportType>(
-                  segments: const [
-                    ButtonSegment(value: ReportType.daily, label: Text('Harian')),
-                    ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
-                    ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
-                  ],
-                  selected: {_selectedReportType},
-                  onSelectionChanged: (newSelection) {
-                    setState(() {
-                      _selectedReportType = newSelection.first;
-                    });
-                    // Trigger report load when selection changes
-                    final now = DateTime.now();
-                    DateTime startTime;
-                    final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      child: Builder( // Use a Builder to get a context that has the ReportsBloc
+        builder: (context) {
+          _reportsBloc = context.read<ReportsBloc>(); // Initialize it here
 
-                    switch (_selectedReportType) {
-                      case ReportType.daily:
-                        startTime = DateTime(now.year, now.month, now.day);
-                        break;
-                      case ReportType.weekly:
-                        startTime = now.subtract(const Duration(days: 6));
-                        break;
-                      case ReportType.monthly:
-                        startTime = DateTime(now.year, now.month, 1);
-                        break;
-                    }
-                    context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime));
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text(
+                'Laporan Penjualan',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              backgroundColor: Colors.white,
+              elevation: 0, // Remove shadow for a flatter look
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                onPressed: () => GoRouter.of(context).go('/'),
+              ),
+              centerTitle: true, // Center the title
+              actions: [
+                BlocBuilder<ReportsBloc, ReportsState>(
+                  builder: (context, state) {
+                    return IconButton(
+                      icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                      onPressed: () {
+                        final bloc = context.read<ReportsBloc>();
+                        _showDeleteAllConfirmation(context, bloc);
+                      },
+                    );
                   },
-                  style: SegmentedButton.styleFrom(
-                    foregroundColor: Colors.indigo,
-                    selectedForegroundColor: Colors.white,
-                    selectedBackgroundColor: Colors.indigo,
-                    side: const BorderSide(color: Colors.indigo),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
+              ],
+            ),
+            body: Padding(
+              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Filter Chips
+                  Center( // Center the segmented button
+                    child: SegmentedButton<ReportType>(
+                      segments: const [
+                        ButtonSegment(value: ReportType.daily, label: Text('Harian')),
+                        ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
+                        ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
+                      ],
+                      selected: {_selectedReportType},
+                      onSelectionChanged: (newSelection) {
+                        setState(() {
+                          _selectedReportType = newSelection.first;
+                        });
+                        // Trigger report load when selection changes
+                        final now = DateTime.now();
+                        DateTime startTime;
+                        final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+                        switch (_selectedReportType) {
+                          case ReportType.daily:
+                            startTime = DateTime(now.year, now.month, now.day);
+                            break;
+                          case ReportType.weekly:
+                            startTime = now.subtract(const Duration(days: 6));
+                            break;
+                          case ReportType.monthly:
+                            startTime = DateTime(now.year, now.month, 1);
+                            break;
+                        }
+                        _reportsBloc.add(LoadReports(startTime: startTime, endTime: endTime)); // Use the initialized bloc
+                      },
+                      style: SegmentedButton.styleFrom(
+                        foregroundColor: Colors.indigo,
+                        selectedForegroundColor: Colors.white,
+                        selectedBackgroundColor: Colors.indigo,
+                        side: const BorderSide(color: Colors.indigo),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Summary Cards and List
+                  Expanded(
+                    child: ReportContent(reportType: _selectedReportType),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              // Summary Cards and List
-              Expanded(
-                child: ReportContent(reportType: _selectedReportType),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -195,56 +202,58 @@ class _ReportContentState extends State<ReportContent> {
           return Center(child: Text('Error: ${state.message}'));
         }
         if (state is ReportsLoaded) {
-          return Column(
-            children: [
-              // Summary Cards
-              Row(
-                children: [
-                  Expanded(
-                    child: SummaryCard(
-                      title: 'Total Pendapatan',
-                      value: NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(state.totalRevenue),
-                      icon: Icons.attach_money,
-                      color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SummaryCard(
-                      title: 'Jumlah Transaksi',
-                      value: state.transactions.length.toString(),
-                      icon: Icons.receipt_long,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Chart
-              if (state.chartData.isNotEmpty)
-                ExpansionTile(
-                  initiallyExpanded: true, // Chart visible by default
-                  title: const Text('Grafik Penjualan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          debugPrint('ReportContent: Received ReportsLoaded state. Transactions count: ${state.transactions.length}');
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Summary Cards
+                Row(
                   children: [
-                    SizedBox(
-                      height: 200,
-                      child: ReportBarChart(chartData: state.chartData),
+                    Expanded(
+                      child: SummaryCard(
+                        title: 'Total Pendapatan',
+                        value: NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(state.totalRevenue),
+                        icon: Icons.attach_money,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SummaryCard(
+                        title: 'Jumlah Transaksi',
+                        value: state.transactions.length.toString(),
+                        icon: Icons.receipt_long,
+                        color: Colors.blue,
+                      ),
                     ),
                   ],
                 ),
-              const SizedBox(height: 24),
-              // Best Selling Products
-              const Text(
-                'Produk Terlaris',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const Divider(height: 20, thickness: 1),
-              if (state.bestSellingProducts.isEmpty)
-                const Center(child: Text('Tidak ada produk terlaris pada periode ini.'))
-              else
-                Expanded(
-                  child: ListView.builder(
+                const SizedBox(height: 24),
+                // Chart
+                if (state.chartData.isNotEmpty)
+                  ExpansionTile(
+                    initiallyExpanded: true, // Chart visible by default
+                    title: const Text('Grafik Penjualan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    children: [
+                      SizedBox(
+                        height: 200,
+                        child: ReportBarChart(chartData: state.chartData),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 24),
+                // Best Selling Products
+                const Text(
+                  'Produk Terlaris',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const Divider(height: 20, thickness: 1),
+                if (state.bestSellingProducts.isEmpty)
+                  const Center(child: Text('Tidak ada produk terlaris pada periode ini.'))
+                else
+                  ListView.builder(
                     shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: state.bestSellingProducts.length > 5 ? 5 : state.bestSellingProducts.length, // Tampilkan 5 teratas
                     itemBuilder: (context, index) {
                       final product = state.bestSellingProducts[index];
@@ -260,40 +269,41 @@ class _ReportContentState extends State<ReportContent> {
                       );
                     },
                   ),
+                const SizedBox(height: 24),
+                // Transaction List Header
+                const Text(
+                  'Detail Transaksi',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
-              const SizedBox(height: 24),
-              // Transaction List Header
-              const Text(
-                'Detail Transaksi',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const Divider(height: 20, thickness: 1),
-              // Transaction List
-              Expanded(
-                child: state.transactions.isEmpty
-                    ? const Center(child: Text('Tidak ada transaksi pada periode ini.'))
-                    : ListView.builder(
-                        itemCount: state.transactions.length,
-                        itemBuilder: (context, index) {
-                          final tx = state.transactions[index];
-                          return Card(
-                            elevation: 0.5,
-                            margin: const EdgeInsets.symmetric(vertical: 4.0),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            child: ListTile(
-                              leading: const Icon(Icons.receipt, color: Colors.indigo),
-                              title: Text('ID: ${tx.id.substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: Text(DateFormat('dd MMM yyyy, HH:mm').format(tx.createdAt)),
-                              trailing: Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(tx.totalAmount), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-                              onTap: () {
-                                context.go('/transaction_detail', extra: tx);
-                              },
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                const Divider(height: 20, thickness: 1),
+                // Transaction List
+                if (state.transactions.isEmpty)
+                  const Center(child: Text('Tidak ada transaksi pada periode ini.'))
+                else
+                  ListView.builder(
+                    shrinkWrap: true, // Crucial for embedding in SingleChildScrollView
+                    physics: const NeverScrollableScrollPhysics(), // Hand over scrolling to parent
+                    itemCount: state.transactions.length,
+                    itemBuilder: (context, index) {
+                      final tx = state.transactions[index];
+                      return Card(
+                        elevation: 0.5,
+                        margin: const EdgeInsets.symmetric(vertical: 4.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        child: ListTile(
+                          leading: const Icon(Icons.receipt, color: Colors.indigo),
+                          title: Text('ID: ${tx.id.substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(DateFormat('dd MMM yyyy, HH:mm').format(tx.createdAt)),
+                          trailing: Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(tx.totalAmount), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                          onTap: () {
+                            context.go('/transaction_detail', extra: tx);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           );
         }
         return const SizedBox.shrink();

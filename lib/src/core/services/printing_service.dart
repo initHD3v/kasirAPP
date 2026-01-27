@@ -1,9 +1,12 @@
-
-import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:intl/intl.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
+
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 
 class PrinterInfo {
   final String name;
@@ -26,22 +29,24 @@ class PrinterInfo {
 }
 
 class PrintingService {
-  final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
+  // final PrintBluetoothThermal _printer = PrintBluetoothThermal.instance; // Removed, using static methods
   static const String _printerKey = 'saved_printer_v2';
+  PrinterInfo? _currentPrinterInfo;
+  bool _isConnected = false;
 
-  // Mengambil daftar perangkat bluetooth yang sudah di-pairing
-  Future<List<BluetoothDevice>> getPairedDevices() async {
-    return await _printer.getBondedDevices();
+  bool get isConnected => _isConnected;
+  String? get savedPrinterName => _currentPrinterInfo?.name;
+
+  Future<List<BluetoothInfo>> getPairedDevices() async {
+    return await PrintBluetoothThermal.pairedBluetooths;
   }
 
-  // Menyimpan informasi printer yang dipilih
-  Future<void> savePrinter(BluetoothDevice device) async {
+  Future<void> savePrinter(BluetoothInfo device) async {
     final prefs = await SharedPreferences.getInstance();
-    final printerInfo = PrinterInfo(name: device.name ?? 'Unknown Device', address: device.address ?? '');
+    final printerInfo = PrinterInfo(name: device.name ?? 'Unknown', address: device.macAdress);
     await prefs.setString(_printerKey, jsonEncode(printerInfo.toMap()));
   }
 
-  // Mengambil informasi printer yang tersimpan
   Future<PrinterInfo?> getSavedPrinter() async {
     final prefs = await SharedPreferences.getInstance();
     final savedPrinterString = prefs.getString(_printerKey);
@@ -51,51 +56,101 @@ class PrintingService {
     return null;
   }
 
-  // Method untuk format dan print struk
-  Future<void> printReceipt(TransactionModel transaction) async {
+  Future<bool> autoConnectSavedPrinter() async {
+    debugPrint('PrintingService: Attempting to auto-connect to saved printer.');
     final printerInfo = await getSavedPrinter();
     if (printerInfo == null || printerInfo.address.isEmpty) {
-      throw Exception('Printer belum dipilih. Silakan pilih di Pengaturan Printer.');
+      _isConnected = false;
+      _currentPrinterInfo = null;
+      debugPrint('PrintingService: No saved printer found or address is empty.');
+      return false;
     }
 
-    final isConnected = await _printer.isConnected;
-    if (isConnected != true) {
-      await _printer.connect(BluetoothDevice(printerInfo.name, printerInfo.address));
-    }
-
-    // ESC/POS commands to format the receipt
-    _printer.printCustom("TOKO KITA", 3, 1); // Size 3 (large), Align center
-    _printer.printCustom("Jalan Aplikasi No. 123", 1, 1); // Size 1 (normal), Align center
-    _printer.printNewLine();
-    _printer.printLeftRight(
-      "No: ${transaction.id.substring(0, 8)}",
-      DateFormat('dd/MM/yy HH:mm').format(transaction.createdAt),
-      1,
+    _currentPrinterInfo = printerInfo;
+    debugPrint('PrintingService: Found saved printer: ${printerInfo.name} (${printerInfo.address}). Attempting connection...');
+    final bool connectResult = await PrintBluetoothThermal.connect(
+      macPrinterAddress: printerInfo.address,
     );
-    _printer.printNewLine();
+    _isConnected = connectResult;
+    if (_isConnected) {
+      debugPrint('PrintingService: Successfully connected to ${printerInfo.name}.');
+    } else {
+      debugPrint('PrintingService: Failed to connect to ${printerInfo.name}.');
+    }
+    return _isConnected;
+  }
 
-    // Items
+  Future<void> printReceipt(TransactionModel transaction) async {
+    debugPrint('PrintingService: printReceipt called. Current _isConnected: $_isConnected');
+    if (!_isConnected) {
+      debugPrint('PrintingService: Printer not connected. Attempting auto-connection...');
+      final bool connected = await autoConnectSavedPrinter();
+      if (!connected) {
+        debugPrint('PrintingService: Auto-connection failed. Throwing exception.');
+        throw Exception('Printer belum terhubung. Silakan periksa pengaturan atau coba lagi.');
+      }
+    }
+    debugPrint('PrintingService: Printer is connected. Generating and writing receipt bytes.');
+    List<int> bytes = await _generateReceipt(transaction);
+    await PrintBluetoothThermal.writeBytes(bytes);
+    debugPrint('PrintingService: Receipt bytes written.');
+  }
+
+  Future<List<int>> _generateReceipt(TransactionModel transaction) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm58, profile);
+    final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+    List<int> bytes = [];
+
+    bytes += generator.text('MD1', styles: PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2));
+    bytes += generator.text('Jl.kartini Saribudolok', styles: PosStyles(align: PosAlign.center));
+    bytes += generator.feed(1);
+
+    bytes += generator.row([
+      PosColumn(text: 'No: ${(transaction.createdAt.millisecondsSinceEpoch % 10000000).toString()}', width: 6),
+      PosColumn(text: DateFormat('dd/MM/yy HH:mm').format(transaction.createdAt), width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.feed(1);
+
     for (var item in transaction.items) {
       final itemName = item.product.name;
       final itemQty = item.quantity.toString();
       final itemTotal = (item.product.price * item.quantity).toStringAsFixed(0);
-      _printer.printLeftRight("$itemName x$itemQty", "Rp$itemTotal", 1);
+      bytes += generator.row([
+        PosColumn(text: '$itemName x$itemQty', width: 8),
+        PosColumn(text: 'Rp$itemTotal', width: 4, styles: PosStyles(align: PosAlign.right)),
+      ]);
     }
-    _printer.printNewLine();
+    bytes += generator.feed(1);
 
-    // Totals
     final subtotal = transaction.items.fold(0.0, (sum, item) => sum + item.subtotal);
     final tax = transaction.totalAmount - subtotal;
 
-    _printer.printLeftRight("Subtotal", "Rp${subtotal.toStringAsFixed(0)}", 1);
-    _printer.printLeftRight("Pajak (10%)", "Rp${tax.toStringAsFixed(0)}", 1);
-    _printer.printCustom("--------------------------------", 1, 1);
-    _printer.printLeftRight("TOTAL", "Rp${transaction.totalAmount.toStringAsFixed(0)}", 2);
-    _printer.printNewLine();
+    bytes += generator.row([
+      PosColumn(text: 'Subtotal', width: 6),
+      PosColumn(text: 'Rp${subtotal.toStringAsFixed(0)}', width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
 
-    // Footer
-    _printer.printCustom("Terima Kasih!", 2, 1); // Size 2, Align center
-    _printer.printNewLine();
-    _printer.paperCut();
+    bytes += generator.hr();
+    bytes += generator.row([
+      PosColumn(text: 'TOTAL', width: 6, styles: PosStyles(height: PosTextSize.size2, width: PosTextSize.size2)),
+      PosColumn(text: 'Rp${transaction.totalAmount.toStringAsFixed(0)}', width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.feed(1);
+    bytes += generator.row([
+      PosColumn(text: 'TUNAI', width: 6), // Assuming cash payment, or could use transaction.paymentMethod
+      PosColumn(text: currencyFormatter.format(transaction.amountPaid), width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'KEMBALI', width: 6),
+      PosColumn(text: currencyFormatter.format(transaction.change), width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.feed(2);
+
+    bytes += generator.text('Terima Kasih!', styles: PosStyles(align: PosAlign.center, height: PosTextSize.size2));
+    bytes += generator.feed(1);
+    bytes += generator.cut();
+
+    return bytes;
   }
 }

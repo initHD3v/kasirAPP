@@ -14,8 +14,34 @@ import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/products/bloc/product_state.dart';
 import 'package:uuid/uuid.dart';
 
-class ProductsPage extends StatelessWidget {
+class ProductsPage extends StatefulWidget {
   const ProductsPage({super.key});
+
+  @override
+  State<ProductsPage> createState() => _ProductsPageState();
+}
+
+class _ProductsPageState extends State<ProductsPage> {
+  double _fabTop = 0.0;
+  double _fabLeft = 0.0;
+  final double _fabSize = 56.0; // Default FAB size
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with default values, will be updated after first frame
+    _fabTop = 0.0;
+    _fabLeft = 0.0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) { // Ensure the widget is still mounted before accessing context
+        final Size screenSize = MediaQuery.of(context).size;
+        setState(() {
+          _fabTop = (screenSize.height / 2) - (_fabSize / 2); // Initial center vertical
+          _fabLeft = (screenSize.width / 2) - (_fabSize / 2); // Initial center horizontal
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,81 +55,161 @@ class ProductsPage extends StatelessWidget {
             onPressed: () => GoRouter.of(context).go('/'),
           ),
         ),
-        body: BlocBuilder<ProductBloc, ProductState>(
-          builder: (context, state) {
-            if (state is ProductLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is ProductLoaded) {
-              if (state.products.isEmpty) {
-                return const Center(
-                  child: Text('Belum ada produk. Tekan + untuk menambah.'),
-                );
-              }
-              return ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                itemCount: state.products.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  final product = state.products[index];
-                  return ListTile(
-                    leading: product.imageUrl != null
-                        ? CircleAvatar(
-                            backgroundImage: MemoryImage(base64Decode(product.imageUrl!)),
-                            backgroundColor: Colors.grey[200],
-                          )
-                        : CircleAvatar(
-                            backgroundColor: Colors.grey[200],
-                            child: const Icon(Icons.inventory_2_outlined, color: Colors.indigo),
-                          ),
-                    title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('Harga: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(product.price)}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey),
-                          onPressed: () => showDialog(
-                            context: context,
-                            builder: (dialogContext) {
-                              return BlocProvider.value(
-                                value: BlocProvider.of<ProductBloc>(context),
-                                child: AddEditProductDialog(product: product),
-                              );
-                            },
+        body: Stack(
+          children: [
+            BlocBuilder<ProductBloc, ProductState>(
+              builder: (context, state) {
+                if (state is ProductLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state is ProductLoaded) {
+                  if (state.products.isEmpty) {
+                    return const Center(
+                      child: Text('Belum ada produk. Tekan + untuk menambah.'),
+                    );
+                  }
+                  return ListView.builder( // Changed to ListView.builder as separator is removed
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    itemCount: state.products.length,
+                    itemBuilder: (context, index) {
+                      final product = state.products[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        elevation: 4.0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              // Product Image
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: product.imageUrl != null
+                                    ? Image.memory(
+                                        base64Decode(product.imageUrl!),
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: 80,
+                                        height: 80,
+                                        color: Colors.grey[200],
+                                        child: Icon(Icons.inventory_2_outlined, size: 40, color: Colors.indigo),
+                                      ),
+                              ),
+                              const SizedBox(width: 16.0),
+                              // Product Details (Name, Price)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18.0,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4.0),
+                                    Text(
+                                      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(product.price),
+                                      style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Action Buttons (Edit, Delete)
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey),
+                                    onPressed: () => showDialog(
+                                      context: context,
+                                      builder: (dialogContext) {
+                                        return BlocProvider.value(
+                                          value: BlocProvider.of<ProductBloc>(context),
+                                          child: AddEditProductDialog(product: product),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outlined, color: Colors.redAccent),
+                                    onPressed: () => _showDeleteConfirmation(context, product.id),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                          onPressed: () => _showDeleteConfirmation(context, product.id),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
-                },
-              );
-            }
-            if (state is ProductError) {
-              return Center(child: Text('Terjadi Kesalahan: ${state.message}'));
-            }
-            return const Center(child: Text('State tidak diketahui.'));
-          },
-        ),
-        floatingActionButton: Builder(builder: (context) {
-          return FloatingActionButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (dialogContext) {
-                return BlocProvider.value(
-                  value: BlocProvider.of<ProductBloc>(context),
-                  child: const AddEditProductDialog(),
-                );
+                }
+                if (state is ProductError) {
+                  return Center(child: Text('Terjadi Kesalahan: ${state.message}'));
+                }
+                return const Center(child: Text('State tidak diketahui.'));
               },
             ),
-            backgroundColor: Colors.indigo,
-            child: const Icon(Icons.add, color: Colors.white),
-          );
-        }),
+            Positioned(
+              top: _fabTop, // Use _fabTop for positioning
+              left: _fabLeft, // Use _fabLeft for positioning
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  setState(() {
+                    _fabTop += details.delta.dy;
+                    _fabLeft += details.delta.dx;
+                  });
+                },
+                onPanEnd: (details) {
+                  // Ensure the button stays within screen bounds
+                  final Size screenSize = MediaQuery.of(context).size;
+                  setState(() {
+                    _fabTop = _fabTop.clamp(0.0, screenSize.height - _fabSize - 16.0);
+                    _fabLeft = _fabLeft.clamp(0.0, screenSize.width - _fabSize - 16.0);
+                  });
+                },
+                child: FloatingActionButton(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (dialogContext) {
+                      return BlocProvider.value(
+                        value: BlocProvider.of<ProductBloc>(context),
+                        child: const AddEditProductDialog(),
+                      );
+                    },
+                  ),
+                  backgroundColor: Colors.indigo,
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+        // floatingActionButton: Builder(builder: (context) { // Removed from here
+        //   return FloatingActionButton(
+        //     onPressed: () => showDialog(
+        //       context: context,
+        //       builder: (dialogContext) {
+        //         return BlocProvider.value(
+        //           value: BlocProvider.of<ProductBloc>(context),
+        //           child: const AddEditProductDialog(),
+        //         );
+        //       },
+        //     ),
+        //     backgroundColor: Colors.indigo,
+        //     child: const Icon(Icons.add, color: Colors.white),
+        //   );
+        // }),
     );
   }
 

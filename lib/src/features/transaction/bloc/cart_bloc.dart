@@ -1,4 +1,3 @@
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:kasir_app/src/data/models/cart_item_model.dart';
@@ -14,6 +13,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<IncrementItemQuantity>(_onIncrementItemQuantity);
     on<DecrementItemQuantity>(_onDecrementItemQuantity);
     on<ClearCart>(_onClearCart);
+    on<ReorderCartItems>(_onReorderCartItems); // Register the new event handler
   }
 
   void _onAddItem(AddItem event, Emitter<CartState> emit) {
@@ -63,6 +63,23 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
   void _onClearCart(ClearCart event, Emitter<CartState> emit) {
     _updateState(emit, []);
+  }
+
+  void _onReorderCartItems(ReorderCartItems event, Emitter<CartState> emit) {
+    final List<CartItem> updatedItems = List.from(state.items);
+    
+    // Adjust newIndex if it's moving to a lower index
+    int newIndexAdjusted = event.newIndex; // Create a mutable copy
+
+    // Adjust newIndex if it's moving to a lower index
+    if (event.oldIndex < newIndexAdjusted) { // Use the mutable copy
+      newIndexAdjusted -= 1; // Modify the mutable copy
+    }
+
+    final CartItem item = updatedItems.removeAt(event.oldIndex);
+    updatedItems.insert(event.newIndex, item);
+
+    _updateState(emit, updatedItems);
   }
 
   // Method helper untuk menghitung total dan emit state baru

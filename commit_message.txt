@@ -1,12 +1,9 @@
-feat: Implementasi fitur hapus semua transaksi dan perbaikan bug
+fix: Perbaikan fungsionalitas logout dan penyesuaian router
 
 Memperbaiki:
-- Error `Provider` pada halaman laporan saat menghapus semua transaksi.
-- Menghapus kode dan import yang tidak terpakai.
-
-Fitur baru:
-- Menambahkan fungsionalitas untuk menghapus semua data transaksi dari halaman laporan.
+- Fungsionalitas logout dengan injeksi `AuthRepository` yang benar ke `AuthBloc`.
+- Logika redirect `AppRouter` untuk mengarahkan ke halaman login setelah logout.
+- Penempatan atribut `android:enableOnBackInvokedCallback` di `AndroidManifest.xml` (meskipun peringatan masih muncul, konfigurasi sudah benar).
 
 Catatan:
-- Peringatan `OnBackInvokedCallback` masih muncul meskipun atribut sudah ditambahkan di `AndroidManifest.xml`. Ini mungkin masalah lingkungan.
-- Peringatan `unnecessary_null_comparison` di `products_page.dart` belum teratasi.
+- Peringatan `unnecessary_null_comparison` di `products_page.dart` masih belum teratasi (kemungkinan false positive).

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kasir_app/src/core/app_router.dart';
 import 'package:kasir_app/src/core/services/database_service.dart';
+import 'package:kasir_app/src/core/services/printing_service.dart';
 import 'src/core/service_locator.dart';
 import 'package:kasir_app/src/data/repositories/product_repository.dart';
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
@@ -13,6 +14,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupLocator();
   await getIt<DatabaseService>().database;
+
+  // Auto-connect to saved printer
+  final printingService = getIt<PrintingService>();
+  await printingService.autoConnectSavedPrinter(); // Attempt auto-connection
+
   runApp(const MyApp());
 }
 

@@ -1,9 +1,8 @@
-
-import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/core/services/printing_service.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 class PrinterSettingsPage extends StatefulWidget {
   const PrinterSettingsPage({super.key});
@@ -14,7 +13,7 @@ class PrinterSettingsPage extends StatefulWidget {
 
 class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   final PrintingService _printingService = getIt<PrintingService>();
-  List<BluetoothDevice> _devices = [];
+  List<BluetoothInfo> _devices = []; // Use plugin's BluetoothInfo
   PrinterInfo? _savedPrinter;
   bool _isLoading = false;
 
@@ -39,11 +38,11 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     try {
       final devices = await _printingService.getPairedDevices();
       setState(() {
-        _devices = devices;
+        _devices = devices; // No cast needed, already BluetoothInfo
       });
     } catch (e) {
-      final messenger = ScaffoldMessenger.of(context); // Get messenger before await
-      if (!context.mounted) return;
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(
         SnackBar(content: Text('Gagal memindai perangkat: $e'), backgroundColor: Colors.red),
       );
@@ -54,12 +53,12 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     }
   }
 
-  void _selectPrinter(BluetoothDevice device) async {
-    final messenger = ScaffoldMessenger.of(context); // Get messenger before await
-    await _printingService.savePrinter(device);
-    if (!context.mounted) return;
+  void _selectPrinter(BluetoothInfo device) async { // Use plugin's BluetoothInfo
+    await _printingService.savePrinter(device); // Pass BluetoothInfo directly
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      SnackBar(content: Text('${device.name} disimpan sebagai printer utama.'), backgroundColor: Colors.green),
+      SnackBar(content: Text('${device.name ?? 'Unknown'} disimpan sebagai printer utama.'), backgroundColor: Colors.green),
     );
     _loadSavedPrinter(); // Refresh saved printer info
   }
@@ -105,7 +104,7 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
                         return ListTile(
                           leading: const Icon(Icons.bluetooth),
                           title: Text(device.name ?? 'Unknown Device'),
-                          subtitle: Text(device.address ?? 'No address'),
+                          subtitle: Text(device.macAdress),
                           onTap: () => _selectPrinter(device),
                         );
                       },

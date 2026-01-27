@@ -1,4 +1,3 @@
-
 part of 'cart_bloc.dart';
 
 abstract class CartEvent extends Equatable {
@@ -50,3 +49,14 @@ class DecrementItemQuantity extends CartEvent {
 
 // Event untuk membersihkan keranjang
 class ClearCart extends CartEvent {}
+
+// Event untuk mengubah urutan item di keranjang
+class ReorderCartItems extends CartEvent {
+  final int oldIndex;
+  final int newIndex;
+
+  const ReorderCartItems(this.oldIndex, this.newIndex);
+
+  @override
+  List<Object> get props => [oldIndex, newIndex];
+}

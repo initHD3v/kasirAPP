@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
+import 'package:kasir_app/src/core/services/printing_service.dart';
 import 'package:kasir_app/src/data/repositories/user_repository.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
 
@@ -43,6 +44,26 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/reports'),
         ),
+        actions: [ // Added actions for print button
+          IconButton(
+            icon: const Icon(Icons.print),
+            tooltip: 'Cetak Ulang Struk',
+            onPressed: () async {
+              final printingService = getIt<PrintingService>();
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await printingService.printReceipt(widget.transaction);
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Struk dikirim ke printer.'), backgroundColor: Colors.green),
+                );
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Gagal mencetak: ${e.toString()}'), backgroundColor: Colors.red),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

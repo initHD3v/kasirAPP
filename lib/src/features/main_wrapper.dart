@@ -15,6 +15,8 @@ class MainWrapper extends StatelessWidget {
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: navigationShell.currentIndex,
+        selectedItemColor: Colors.blue, // Warna ikon yang dipilih
+        unselectedItemColor: Colors.grey, // Warna ikon yang tidak dipilih
         onTap: (index) {
           navigationShell.goBranch(
             index,
