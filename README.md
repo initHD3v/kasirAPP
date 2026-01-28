@@ -107,4 +107,4 @@ Proyek ini didistribusikan di bawah Lisensi MIT. Detail lengkap dapat ditemukan 
 
 ---
 
-**[initialH](https://github.com/initialh)** – Kontak melalui [hidayatfauzi6@gmail.com](mailto:hidayatfauzi6@gmail.com)
+**[initHD3v](https://github.com/initHD3v)** – Kontak melalui [hidayatfauzi6@gmail.com](mailto:hidayatfauzi6@gmail.com)
