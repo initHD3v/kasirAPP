@@ -1,39 +1,49 @@
-# Kasir App
+# Aplikasi Kasir Modern (Kasir App)
 
-Aplikasi kasir modern yang dibangun dengan Flutter, dirancang untuk membantu pengelolaan transaksi penjualan, produk, dan laporan secara efisien. Aplikasi ini mendukung tampilan responsif untuk perangkat mobile dan desktop, serta dilengkapi dengan fitur manajemen pengguna dan pencetakan struk.
+Aplikasi kasir modern yang dikembangkan dengan Flutter, dirancang untuk mengoptimalkan pengelolaan transaksi penjualan, produk, dan laporan secara efisien. Aplikasi ini mendukung tampilan responsif di berbagai perangkat, dilengkapi dengan fitur manajemen pengguna, pencetakan struk, serta kapabilitas backup dan restore data yang canggih.
 
 ## Fitur Utama
 
-*   **Manajemen Produk:** Tambah, edit, dan hapus produk dengan mudah, termasuk gambar produk.
-*   **Transaksi Penjualan:** Proses transaksi cepat dengan keranjang belanja interaktif, perhitungan total, pembayaran, dan kembalian otomatis.
-    *   **Peningkatan Cetak Struk:** Desain struk lebih baik (nama toko "MD1", alamat "Jl.kartini Saribudolok", nomor struk numerik, detail pembayaran & kembalian, tanpa pajak). Penggunaan kertas lebih efisien. Struk dapat dicetak ulang dari detail transaksi.
-*   **Laporan Penjualan:** Lihat laporan penjualan harian, mingguan, dan bulanan dengan ringkasan pendapatan, jumlah transaksi, produk terlaris, dan detail transaksi. Dilengkapi dengan grafik interaktif (line chart) yang dapat disembunyikan/ditampilkan.
-*   **Manajemen Pengguna:** Kelola pengguna aplikasi dengan peran (admin/kasir).
-*   **Pengaturan Printer:** Konfigurasi printer thermal untuk pencetakan struk.
-    *   **Otomatisasi Printer:** Aplikasi akan mencoba mendeteksi dan menyambung secara otomatis ke printer Bluetooth yang tersimpan saat startup. Notifikasi status koneksi printer akan ditampilkan setelah login berhasil.
-*   **Autentikasi:** Sistem login yang aman.
-*   **UI Modern & Responsif:** Antarmuka pengguna yang segar dan adaptif untuk berbagai ukuran layar.
+*   **Manajemen Produk:** Fasilitas lengkap untuk menambah, mengedit, dan menghapus produk, termasuk dukungan untuk gambar produk.
+*   **Transaksi Penjualan:** Memungkinkan proses transaksi yang cepat dengan antarmuka keranjang belanja interaktif, perhitungan total otomatis, dan pengelolaan pembayaran serta kembalian.
+    *   **Pencetakan Struk:** Desain struk yang ditingkatkan (mencakup nama toko "MD1", alamat "Jl. Kartini Saribudolok", nomor struk numerik, detail pembayaran & kembalian, tanpa pajak). Struk dapat dicetak ulang dari detail transaksi untuk efisiensi penggunaan kertas.
+*   **Laporan Penjualan:** Menyajikan laporan penjualan harian, mingguan, dan bulanan yang komprehensif, mencakup ringkasan pendapatan, jumlah transaksi, identifikasi produk terlaris, dan detail transaksi lengkap. Dilengkapi dengan grafik interaktif (line chart) untuk analisis visual.
+*   **Manajemen Pengguna:** Mengelola akun pengguna aplikasi dengan penetapan peran (Admin/Kasir) untuk kontrol akses yang granular.
+*   **Pengaturan Printer:** Konfigurasi mudah untuk printer thermal guna pencetakan struk penjualan.
+    *   **Otomatisasi Koneksi Printer:** Aplikasi secara cerdas mendeteksi dan secara otomatis terhubung ke printer Bluetooth yang tersimpan saat startup. Notifikasi status koneksi printer akan disajikan setelah login berhasil.
+*   **Autentikasi Pengguna:** Sistem login yang aman dan terintegrasi.
+    *   **Login Admin Default:** Untuk instalasi baru, aplikasi menyediakan login admin default dengan `username: admin` dan `password: admin` untuk memudahkan setup awal tanpa registrasi manual.
+*   **Backup & Restore Data:** Fitur vital untuk menjaga integritas data aplikasi.
+    *   **Pencadangan Data:** Membuat salinan database aplikasi ke lokasi penyimpanan lokal yang dapat dipilih pengguna.
+    *   **Pemulihan Data:** Mengembalikan kondisi database aplikasi dari file backup `.db` yang ada, dengan konfirmasi pemilihan file dari pengguna.
+*   **UI Modern & Responsif:** Antarmuka pengguna yang intuitif, estetis, dan adaptif, memastikan pengalaman yang konsisten di berbagai ukuran layar perangkat.
 
 ## Teknologi yang Digunakan
 
-*   **Flutter:** Framework UI untuk membangun aplikasi multi-platform.
-*   **Bloc:** Untuk manajemen state yang prediktif dan teruji.
-*   **SQFlite:** Database lokal untuk penyimpanan data offline.
-*   **GoRouter:** Untuk navigasi yang deklaratif.
-*   **GetIt:** Untuk dependency injection.
-*   **fl_chart:** Untuk visualisasi data grafik.
-*   **intl:** Untuk pemformatan mata uang dan tanggal/waktu.
-*   **image_picker:** Untuk memilih gambar dari galeri.
-*   **flutter_image_compress:** Untuk kompresi gambar.
-*   **blue_thermal_printer:** Untuk integrasi printer thermal.
-*   **shared_preferences:** Untuk penyimpanan data sederhana (misalnya, status login).
-*   **uuid:** Untuk menghasilkan ID unik.
-*   **crypto:** Untuk hashing password.
+*   **Flutter:** Framework UI terkemuka untuk pengembangan aplikasi multi-platform.
+*   **Bloc:** Arsitektur manajemen state yang handal dan prediktif.
+*   **SQFlite:** Solusi database SQLite lokal untuk penyimpanan data offline yang efisien.
+*   **GoRouter:** Implementasi navigasi deklaratif yang canggih.
+*   **GetIt:** Lightweight service locator untuk dependency injection.
+*   **fl_chart:** Pustaka visualisasi data untuk grafik yang menarik.
+*   **intl:** Utilitas untuk lokalisasi, termasuk pemformatan mata uang dan tanggal/waktu.
+*   **uuid:** Pustaka untuk menghasilkan pengenal unik universal (UUID).
+*   **crypto:** Pustaka kriptografi untuk hashing password secara aman.
+*   **permission_handler:** Untuk manajemen izin akses perangkat secara lintas platform.
+*   **path_provider:** Untuk mendapatkan jalur direktori file sistem perangkat.
+*   **file_picker:** Memungkinkan pengguna untuk memilih file dari penyimpanan perangkat.
+*   **image_picker:** Integrasi untuk memilih gambar dari galeri atau kamera.
+*   **flutter_image_compress:** Optimasi untuk kompresi gambar.
+*   **print_bluetooth_thermal:** Integrasi untuk pencetakan ke printer thermal melalui Bluetooth.
+*   **shared_preferences:** Penyimpanan data kunci-nilai sederhana untuk preferensi pengguna.
+*   **device_info_plus:** Menyediakan informasi detail tentang perangkat.
+*   **esc_pos_utils_plus, image:** Pustaka pendukung untuk formatting ESC/POS dan pemrosesan gambar cetak.
 
-## Perbaikan dan Peningkatan
+## Perbaikan dan Peningkatan Terkini
 
-*   **Perbaikan Parsing Jumlah Pembayaran:** Mengatasi masalah di dialog konfirmasi pembayaran di mana input numerik dengan pemisah ribuan (misalnya, "50.000") tidak diurai dengan benar.
-*   **Perbaikan Laporan Penjualan:** Menyelesaikan kesalahan terkait `ReportsBloc` ProviderNotFoundException dan masalah tata letak `RenderFlex overflow` serta `Vertical viewport unbounded height`, memastikan semua detail transaksi ditampilkan dan dapat digulir sesuai periode laporan yang dipilih.
+*   **Perbaikan Parsing Jumlah Pembayaran:** Mengatasi masalah di dialog konfirmasi pembayaran yang gagal mengurai input numerik dengan pemisah ribuan (misalnya, "50.000").
+*   **Perbaikan Laporan Penjualan:** Menyelesaikan `ReportsBloc` ProviderNotFoundException dan masalah tata letak `RenderFlex overflow` serta `Vertical viewport unbounded height`, memastikan detail transaksi ditampilkan dengan benar sesuai periode laporan.
+*   **Perbaikan Restore Data:** Mengatasi `PlatformException` pada fitur restore data dengan menggunakan `FileType.any` dan validasi ekstensi `.db` secara manual, meningkatkan kompatibilitas di berbagai perangkat Android.
 
 ## Instalasi dan Setup
 
@@ -51,34 +61,37 @@ Pastikan Anda telah menginstal Flutter SDK.
     ```
 
 3.  **Jalankan Aplikasi:**
-    *   **Untuk Debugging:**
+    *   **Untuk Debugging (misalnya, di macOS):**
         ```bash
-        flutter run
+        flutter run -d macos
         ```
-    *   **Untuk Membangun Aplikasi (contoh Android):**
+        Ganti `macos` dengan `android` atau `emulator-id` sesuai kebutuhan.
+    *   **Untuk Membangun Aplikasi Rilis (misalnya, Android APK):**
         ```bash
         flutter build apk --release
         ```
-        Atau untuk platform lain:
+        Untuk platform lain:
         ```bash
         flutter build ios
         flutter build macos
-        flutter build web
-        flutter build linux
-        flutter build windows
+        # dll.
         ```
+    *   **Catatan Izin Android:** Untuk fitur Backup/Restore di Android 11 (API 30) ke atas, aplikasi akan meminta izin "Akses semua file". Anda mungkin perlu memberikan izin ini secara manual melalui pengaturan aplikasi (`Pengaturan > Aplikasi > [Nama Aplikasi] > Izin > File dan media`). Untuk Android 10 (API 29) ke bawah, izin penyimpanan standar akan diminta.
 
 ## Penggunaan
 
-*   **Login:** Gunakan kredensial default (jika ada) atau daftar pengguna baru melalui manajemen pengguna (jika sudah login sebagai admin).
-*   **Navigasi:** Gunakan bilah navigasi atau tombol di `AppBar` untuk berpindah antar halaman (Kasir, Produk, Pengguna, Laporan, Pengaturan Printer).
-*   **Transaksi:** Pilih produk dari daftar, tambahkan ke keranjang, masukkan jumlah pembayaran, dan proses transaksi.
-*   **Laporan:** Pilih jenis laporan (Harian, Mingguan, Bulanan) untuk melihat ringkasan penjualan dan grafik.
+*   **Login Awal:** Untuk penggunaan pertama, gunakan kredensial admin default: `username: admin`, `password: admin`.
+*   **Navigasi:** Gunakan bilah navigasi bawah untuk berpindah antar modul (Kasir, Produk, Laporan, Pengguna, Pengaturan).
+*   **Akses Pengaturan Data:** Dari tab "Pengaturan", pilih "Pengaturan Data" untuk mengakses fungsi Backup dan Restore.
+    *   **Backup Data:** Tekan "Cadangkan Data" dan pilih folder tujuan penyimpanan file backup.
+    *   **Restore Data:** Tekan "Pulihkan Data" dan pilih file backup `.db` dari penyimpanan perangkat Anda.
+*   **Transaksi:** Pilih produk dari daftar, tambahkan ke keranjang, tentukan jumlah pembayaran, dan selesaikan transaksi.
+*   **Laporan:** Jelajahi laporan harian, mingguan, atau bulanan untuk mendapatkan analisis penjualan yang mendalam.
 
 ## Kontribusi
 
-Kontribusi sangat dihargai! Jika Anda menemukan bug atau memiliki saran fitur, silakan buka issue atau kirim pull request.
+Kontribusi dalam bentuk pelaporan bug, saran fitur, atau pull request sangat kami hargai. Silakan buka issue di repositori ini.
 
 ## Lisensi
 
-Proyek ini dilisensikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk detail lebih lanjut.
+Proyek ini dilisensikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk informasi detail.
