@@ -9,10 +9,12 @@ import 'services/database_service.dart';
 
 final getIt = GetIt.instance;
 
-void setupLocator() {
+Future<void> setupLocator() async {
   // Services
   getIt.registerLazySingleton(() => DatabaseService());
-  getIt.registerLazySingleton(() => PrintingService());
+  final printingService = PrintingService();
+  getIt.registerSingleton<PrintingService>(printingService);
+  await printingService.init();
 
   // Repositories
   getIt.registerLazySingleton(() => AuthRepository());

@@ -2,11 +2,14 @@
 part of 'reports_bloc.dart';
 
 // Data class untuk setiap batang pada grafik
-class ChartData {
+class ChartData extends Equatable {
   final String label; // Label di sumbu X (misal: nama hari atau tanggal)
   final double value; // Nilai di sumbu Y (misal: total pendapatan)
 
   const ChartData({required this.label, required this.value});
+
+  @override
+  List<Object> get props => [label, value];
 }
 
 // Data class untuk produk terlaris

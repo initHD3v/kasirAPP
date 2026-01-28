@@ -13,14 +13,30 @@ class PrinterSettingsPage extends StatefulWidget {
 
 class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   final PrintingService _printingService = getIt<PrintingService>();
-  List<BluetoothInfo> _devices = []; // Use plugin's BluetoothInfo
+  List<BluetoothInfo> _devices = [];
   PrinterInfo? _savedPrinter;
   bool _isLoading = false;
+  PrinterState _currentPrinterState = const PrinterState.initial();
 
   @override
   void initState() {
     super.initState();
     _loadSavedPrinter();
+    _currentPrinterState = _printingService.state.value; // Initial state
+    _printingService.state.addListener(_onPrinterStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _printingService.state.removeListener(_onPrinterStateChanged);
+    super.dispose();
+  }
+
+  void _onPrinterStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _currentPrinterState = _printingService.state.value;
+    });
   }
 
   void _loadSavedPrinter() async {
@@ -28,6 +44,7 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     setState(() {
       _savedPrinter = printer;
     });
+    // No need to set initial connection status here, it's handled by the listener
   }
 
   void _scanForDevices() async {
@@ -53,18 +70,59 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
     }
   }
 
-  void _selectPrinter(BluetoothInfo device) async { // Use plugin's BluetoothInfo
-    await _printingService.savePrinter(device); // Pass BluetoothInfo directly
+  void _selectPrinter(BluetoothInfo device) async {
+    final printerToSave = PrinterInfo(name: device.name ?? 'Unknown', address: device.macAdress);
+    await _printingService.savePrinter(printerToSave); // Save the printer info
+
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text('${device.name ?? 'Unknown'} disimpan sebagai printer utama.'), backgroundColor: Colors.green),
-    );
-    _loadSavedPrinter(); // Refresh saved printer info
+    // Attempt to connect to the printer immediately
+    try {
+      await _printingService.connect(printerToSave); // Connect to the printer
+      // The PrintingService.connect method already shows snackbars for success/failure.
+      // So, we don't need a separate success snackbar here.
+    } catch (e) {
+      // Catch any explicit errors from connect, though PrintingService should handle most internally
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Gagal menghubungkan ke printer: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+    _loadSavedPrinter(); // Refresh saved printer info and status in UI
   }
+
+  // ... (rest of the class)
 
   @override
   Widget build(BuildContext context) {
+    String statusText;
+    Color statusColor;
+    IconData statusIcon;
+
+    switch (_currentPrinterState.status) {
+      case PrinterStatus.connected:
+        statusText = 'Terhubung';
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case PrinterStatus.connecting:
+        statusText = 'Menghubungkan...';
+        statusColor = Colors.orange;
+        statusIcon = Icons.wifi_protected_setup;
+        break;
+      case PrinterStatus.error:
+        statusText = _currentPrinterState.errorMessage ?? 'Error: Gagal terhubung';
+        statusColor = Colors.red;
+        statusIcon = Icons.error;
+        break;
+      case PrinterStatus.disconnected:
+      default:
+        statusText = 'Tidak terhubung';
+        statusColor = Colors.grey;
+        statusIcon = Icons.link_off;
+        break;
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pengaturan Printer'),
@@ -80,9 +138,30 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
           children: [
             Card(
               child: ListTile(
-                leading: const Icon(Icons.print, color: Colors.indigo),
-                title: const Text('Printer Tersimpan'),
-                subtitle: Text(_savedPrinter?.name ?? 'Belum ada printer dipilih'),
+                leading: Icon(Icons.print, color: statusColor),
+                title: Text(_savedPrinter?.name ?? 'Belum ada printer dipilih'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_savedPrinter?.address ?? 'N/A'),
+                    Text('Status: $statusText', style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                trailing: _currentPrinterState.status == PrinterStatus.connected
+                    ? IconButton(
+                        icon: const Icon(Icons.link_off, color: Colors.red),
+                        onPressed: () async {
+                          await _printingService.disconnect();
+                        },
+                      )
+                    : (_savedPrinter != null && _currentPrinterState.status != PrinterStatus.connecting
+                        ? IconButton(
+                            icon: const Icon(Icons.link, color: Colors.green),
+                            onPressed: () async {
+                              await _printingService.connect(_savedPrinter!);
+                            },
+                          )
+                        : null),
               ),
             ),
             const SizedBox(height: 24),

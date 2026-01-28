@@ -6,9 +6,11 @@ Aplikasi kasir modern yang dibangun dengan Flutter, dirancang untuk membantu pen
 
 *   **Manajemen Produk:** Tambah, edit, dan hapus produk dengan mudah, termasuk gambar produk.
 *   **Transaksi Penjualan:** Proses transaksi cepat dengan keranjang belanja interaktif, perhitungan total, pembayaran, dan kembalian otomatis.
+    *   **Peningkatan Cetak Struk:** Desain struk lebih baik (nama toko "MD1", alamat "Jl.kartini Saribudolok", nomor struk numerik, detail pembayaran & kembalian, tanpa pajak). Penggunaan kertas lebih efisien. Struk dapat dicetak ulang dari detail transaksi.
 *   **Laporan Penjualan:** Lihat laporan penjualan harian, mingguan, dan bulanan dengan ringkasan pendapatan, jumlah transaksi, produk terlaris, dan detail transaksi. Dilengkapi dengan grafik interaktif (line chart) yang dapat disembunyikan/ditampilkan.
 *   **Manajemen Pengguna:** Kelola pengguna aplikasi dengan peran (admin/kasir).
 *   **Pengaturan Printer:** Konfigurasi printer thermal untuk pencetakan struk.
+    *   **Otomatisasi Printer:** Aplikasi akan mencoba mendeteksi dan menyambung secara otomatis ke printer Bluetooth yang tersimpan saat startup. Notifikasi status koneksi printer akan ditampilkan setelah login berhasil.
 *   **Autentikasi:** Sistem login yang aman.
 *   **UI Modern & Responsif:** Antarmuka pengguna yang segar dan adaptif untuk berbagai ukuran layar.
 
@@ -27,6 +29,11 @@ Aplikasi kasir modern yang dibangun dengan Flutter, dirancang untuk membantu pen
 *   **shared_preferences:** Untuk penyimpanan data sederhana (misalnya, status login).
 *   **uuid:** Untuk menghasilkan ID unik.
 *   **crypto:** Untuk hashing password.
+
+## Perbaikan dan Peningkatan
+
+*   **Perbaikan Parsing Jumlah Pembayaran:** Mengatasi masalah di dialog konfirmasi pembayaran di mana input numerik dengan pemisah ribuan (misalnya, "50.000") tidak diurai dengan benar.
+*   **Perbaikan Laporan Penjualan:** Menyelesaikan kesalahan terkait `ReportsBloc` ProviderNotFoundException dan masalah tata letak `RenderFlex overflow` serta `Vertical viewport unbounded height`, memastikan semua detail transaksi ditampilkan dan dapat digulir sesuai periode laporan yang dipilih.
 
 ## Instalasi dan Setup
 

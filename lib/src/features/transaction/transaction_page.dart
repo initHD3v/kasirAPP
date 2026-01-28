@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/core/services/printing_service.dart';
+import 'package:kasir_app/src/data/models/product_model.dart';
 import 'package:kasir_app/src/data/models/cart_item_model.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
@@ -27,6 +28,48 @@ class TransactionPage extends StatefulWidget {
 
 class _TransactionPageState extends State<TransactionPage> {
   BuildContext? _loadingDialogContext;
+  final PrintingService _printingService = getIt<PrintingService>();
+
+  @override
+  void initState() {
+    super.initState();
+    _printingService.state.addListener(_onPrinterStateChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onPrinterStateChanged()); // Initial check
+  }
+
+  @override
+  void dispose() {
+    _printingService.state.removeListener(_onPrinterStateChanged);
+    super.dispose();
+  }
+
+  void _onPrinterStateChanged() {
+    if (!mounted) return;
+    final printerState = _printingService.state.value;
+    final messenger = ScaffoldMessenger.of(context);
+
+    messenger.hideCurrentSnackBar(); // Hide any previous snackbar
+
+    if (printerState.status == PrinterStatus.disconnected || printerState.status == PrinterStatus.error) {
+      String message = printerState.errorMessage ?? 'Printer tidak terhubung.';
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else if (printerState.status == PrinterStatus.connected) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Printer terhubung.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+    // No explicit notification for 'connecting' as it's typically transient
+  }
 
   Future<void> _handleTransactionSuccess(BuildContext context, TransactionModel transaction) async {
     if (_loadingDialogContext != null && _loadingDialogContext!.mounted) {
@@ -130,90 +173,67 @@ class _TransactionPageState extends State<TransactionPage> {
             });
           }
         },
-        child: BlocListener<AuthBloc, AuthState>(
-          listener: (context, authState) {
-            if (authState is AuthenticationAuthenticated) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                final printingService = getIt<PrintingService>();
-                if (printingService.isConnected) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Printer terkoneksi: ${printingService.savedPrinterName ?? "Tidak Dikenal"}'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Printer tidak terkoneksi. Silakan periksa pengaturan printer.'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-              });
-            }
-          },
-          child: Scaffold(
+        child: Scaffold(
             backgroundColor: const Color(0xFFF5F5F7),
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 1,
               shadowColor: Colors.black.withAlpha(26),
-              title: const Text(
-                'Kasir',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-              ),
+
               actions: [
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthenticationAuthenticated) {
-                      // Jika user adalah admin, tampilkan semua tombol admin
-                      if (state.user.role == UserRole.admin) {
-                        return Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.print_outlined, color: Colors.black),
-                              tooltip: 'Pengaturan Printer',
-                              onPressed: () => context.go('/settings/printer'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.group, color: Colors.black),
-                              tooltip: 'Manajemen Pengguna',
-                              onPressed: () => context.go('/users'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.bar_chart, color: Colors.black),
-                              tooltip: 'Laporan Penjualan',
-                              onPressed: () => context.go('/reports'),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.inventory, color: Colors.black),
-                              tooltip: 'Manajemen Produk',
-                              onPressed: () => context.go('/products'),
-                            ),
-                          ],
-                        );
-                      }
-                    }
-                    // Jika bukan admin atau belum login, jangan tampilkan apa-apa
-                    return const SizedBox.shrink();
-                  },
-                ),
-                // Tombol Logout selalu ada jika sudah login
-                BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthenticationAuthenticated) {
-                      return IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.black),
-                        tooltip: 'Logout',
-                        onPressed: () {
-                          context.read<AuthBloc>().add(LoggedOut());
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          if (state is AuthenticationAuthenticated && state.user.role == UserRole.admin) {
+                            return Row(
+                              children: [
+                                // Commented out the printer settings button:
+                                // IconButton(
+                                //   icon: const Icon(Icons.print_outlined, color: Colors.black),
+                                //   tooltip: 'Pengaturan Printer',
+                                //   onPressed: () => context.go('/settings/printer'),
+                                // ),
+                                IconButton(
+                                  icon: const Icon(Icons.group, color: Colors.black),
+                                  tooltip: 'Manajemen Pengguna',
+                                  onPressed: () => context.go('/users'),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.bar_chart, color: Colors.black),
+                                  tooltip: 'Laporan Penjualan',
+                                  onPressed: () => context.go('/reports'),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.inventory, color: Colors.black),
+                                  tooltip: 'Manajemen Produk',
+                                  onPressed: () => context.go('/products'),
+                                ),
+                              ],
+                            );
+                          }
+                          return const SizedBox.shrink();
                         },
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                )
+                      ),
+                      BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          if (state is AuthenticationAuthenticated) {
+                            return IconButton(
+                              icon: const Icon(Icons.logout, color: Colors.black),
+                              tooltip: 'Logout',
+                              onPressed: () {
+                                context.read<AuthBloc>().add(LoggedOut());
+                              },
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      )
+                    ],
+                  ),
+                ),
               ],
             ),
             body: LayoutBuilder(
@@ -248,7 +268,6 @@ class _TransactionPageState extends State<TransactionPage> {
                 );
               },
             ),
-          ),
         ),
       ),
     );
@@ -272,193 +291,175 @@ class _ProductGridState extends State<ProductGrid> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    debugPrint('ProductGrid initState');
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150), // Duration for one wiggle cycle
-    ); // Removed .repeat(reverse: true) here
+      duration: const Duration(milliseconds: 150),
+    );
+    context.read<ProductBloc>().add(const LoadProducts()); // Initial load of products
   }
 
   @override
   void dispose() {
-    debugPrint('ProductGrid dispose');
     _searchController.dispose();
-    _animationController.dispose(); // Dispose the animation controller
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('ProductGrid build');
-    return Container(
-      color: const Color(0xFFF5F5F7),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari produk...',
-                prefixIcon: const Icon(Icons.search, color: Colors.indigo),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: const BorderSide(color: Colors.indigo, width: 2),
-                ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Cari produk...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              onChanged: (value) {
-                _debouncer.run(() {
-                  debugPrint('Product search query: $value');
-                  context.read<ProductBloc>().add(LoadProducts(query: value));
-                });
-              },
+              filled: true,
+              fillColor: Colors.grey[200],
             ),
+            onChanged: (query) {
+              _debouncer.run(() {
+                // Update the search query locally and trigger a rebuild
+                setState(() {
+                  // No need to dispatch LoadProducts with query anymore, just update local state
+                });
+              });
+            },
           ),
-          Expanded(
-            child: BlocBuilder<ProductBloc, ProductState>(
-              builder: (context, state) {
-                debugPrint('ProductGrid BlocBuilder rebuild. Current state: ${state.runtimeType}');
-                if (state is ProductLoading) {
-                  debugPrint('ProductGrid: State is ProductLoading');
-                  return const Center(child: CircularProgressIndicator());
+        ),
+        Expanded(
+          child: BlocBuilder<ProductBloc, ProductState>(
+            builder: (context, state) {
+              if (state is ProductLoading || state is ProductInitial) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is ProductLoaded) {
+                final String currentSearchQuery = _searchController.text.toLowerCase();
+                final List<Product> displayedProducts = state.products.where((product) {
+                  return product.name.toLowerCase().contains(currentSearchQuery);
+                }).toList();
+
+                if (displayedProducts.isEmpty) {
+                  return const Center(child: Text('Tidak ada produk ditemukan.'));
                 }
-                if (state is ProductLoaded) {
-                  debugPrint('ProductGrid: State is ProductLoaded. Products count: ${state.products.length}');
-                  if (state.products.isEmpty) {
-                    return const Center(
-                      child: Text('Tidak ada produk. Silakan ke Manajemen Produk.'),
+                return GridView.builder(
+                  padding: const EdgeInsets.all(8.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4, // Changed from 3 to 4
+                    crossAxisSpacing: 8.0,
+                    mainAxisSpacing: 8.0,
+                    childAspectRatio: 0.7, // Changed from 0.8 to 0.7
+                  ),
+                  itemCount: displayedProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = displayedProducts[index];
+                    return ProductCard(product: product);
+                  },
+                );
+              } else if (state is ProductError) {
+                return Center(child: Text('Error: ${state.message}'));
+              }
+              return const Center(child: Text('State tidak diketahui.'));
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ProductCard extends StatelessWidget {
+  final Product product;
+  const ProductCard({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        context.read<CartBloc>().add(AddItem(product));
+      },
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: () {
+                  if (product.imageUrl == null || product.imageUrl!.isEmpty) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
                     );
                   }
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16.0),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: MediaQuery.of(context).size.width < 600 ? 3 : 4,
-                      crossAxisSpacing: 16.0,
-                      mainAxisSpacing: 16.0,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: state.products.length,
-                    itemBuilder: (context, index) {
-                      final product = state.products[index];
-                      
-                      return GestureDetector(
-                        onLongPress: () {
-                          setState(() {
-                            _isReordering = !_isReordering; // Toggle reorder mode
-                            if (_isReordering) {
-                              _animationController.repeat(reverse: true); // Start wiggling
-                            } else {
-                              _animationController.stop(); // Stop wiggling
-                              _animationController.value = 0; // Reset rotation
-                            }
-                          });
-                        },
-                        child: AnimatedBuilder( // Use AnimatedBuilder for the wiggle effect
-                          animation: _animationController,
-                          builder: (context, child) {
-                            // Menggunakan Transform.scale sebagai pengganti Transform.rotate
-                            // Ini akan membuat card sedikit membesar dan mengecil secara bergantian
-                            final double scale = _isReordering ? 1.0 + (_animationController.value * 0.02) : 1.0; // Scale between 1.0 and 1.02
-                            return Transform.scale(
-                              scale: scale,
-                              child: RepaintBoundary( // Tetap gunakan RepaintBoundary
-                                child: Card( // Card ini adalah child dari Transform.scale
-                                  elevation: 2,
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: InkWell(
-                                    onTap: () {
-                                      if (!_isReordering) { // Only add to cart if not in reordering mode
-                                        context.read<CartBloc>().add(AddItem(product));
-                                      }
-                                    },
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(
-                                          flex: 3, // Give more space to the image
-                                          child: Container(
-                                            color: Colors.grey[100],
-                                            child: product.imageUrl != null
-                                                ? RepaintBoundary( // Tetap gunakan RepaintBoundary di sini juga
-                                                    child: SizedBox(
-                                                      width: double.infinity,
-                                                      height: double.infinity,
-                                                      child: ClipRRect(
-                                                        borderRadius: BorderRadius.circular(8.0),
-                                                        child: Image.memory(
-                                                          base64Decode(product.imageUrl!),
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder: (context, error, stackTrace) {
-                                                            return const Icon(Icons.broken_image, size: 40, color: Colors.grey);
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  )
-                                                : const Icon(Icons.fastfood, size: 40, color: Colors.grey),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 1, // Less space for text
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  product.name,
-                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                                  textAlign: TextAlign.center,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                Text(
-                                                  NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(product.price),
-                                                  style: TextStyle(
-                                                    color: Colors.indigo,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+
+                  // Check if the string starts with a common base64 image header
+                  // A typical JPEG base64 string starts with "/9j/"
+                  // A typical PNG base64 string starts with "iVBORw0KGgo"
+                  // A typical GIF base64 string starts with "R0lGOD"
+                  // For simplicity, let's just check for the common JPEG header as seen in the logs.
+                  // A more robust solution might involve trying to parse it as URI first.
+                  if (product.imageUrl!.startsWith('/9j/')) {
+                    try {
+                      final imageData = base64Decode(product.imageUrl!);
+                      return Image.memory(
+                        imageData,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(child: Icon(Icons.broken_image, size: 40)),
                       );
-                    },
-                  );
-                }
-                if (state is ProductError) {
-                  debugPrint('ProductGrid: State is ProductError: ${state.message}');
-                  return Center(child: Text('Error: ${state.message}'));
-                }
-                return const SizedBox.shrink();
-              },
+                    } catch (e) {
+                      debugPrint('Error decoding base64 image: $e');
+                      return Container(
+                        color: Colors.grey[200],
+                        child: const Center(child: Icon(Icons.broken_image, size: 40)),
+                      );
+                    }
+                  } else if (product.imageUrl!.startsWith('http://') || product.imageUrl!.startsWith('https://')) {
+                    return Image.network(
+                      product.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(child: Icon(Icons.broken_image, size: 40)),
+                    );
+                  } else {
+                    // Fallback for unrecognized image format
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
+                    );
+                  }
+                }(),
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(product.price),
+                    style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -509,25 +510,24 @@ class _CartPanelState extends State<CartPanel> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: SingleChildScrollView( // Added SingleChildScrollView here
-              child: Column( // Added Column to contain scrollable content
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch, // Ensure content stretches horizontally
                 children: [
                   cartState.items.isEmpty
                       ? const Center(child: Text('Keranjang kosong.'))
-                      : ReorderableListView.builder( // Changed to ReorderableListView.builder
-                          shrinkWrap: true, // Keep shrinkWrap if it's still inside a Column/SingleChildScrollView
-                          // physics: const NeverScrollableScrollPhysics(), // Remove this, ReorderableListView handles its own scrolling
+                      : ReorderableListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(), // Handled by parent SingleChildScrollView
                           itemCount: cartState.items.length,
                           itemBuilder: (context, index) {
                             final item = cartState.items[index];
                             return CartItemTile(
-                              key: ValueKey(item.product.id), // IMPORTANT: Each item must have a unique key
+                              key: ValueKey(item.product.id),
                               item: item,
                             );
                           },
                           onReorder: (oldIndex, newIndex) {
-                            // Handle reorder logic here
-                            // This will be implemented in the next step
                             context.read<CartBloc>().add(ReorderCartItems(oldIndex, newIndex));
                           },
                         ),
@@ -571,24 +571,15 @@ class _CartPanelState extends State<CartPanel> {
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (value) {
-                      // 1. Clean the input for parsing (remove all non-digit characters (except for a single decimal point if needed))
-                      // For ID locale, thousands separator is '.', decimal is ','.
-                      // If the user types '45.000', we want to parse 45000.
-                      // If the user types '45,500', we want to parse 45.500.
-                      // Let's assume input is always integer for now, so just remove non-digits.
                       final cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
                       final parsedAmount = double.tryParse(cleanValue) ?? 0.0;
 
-                      // 2. Update the change calculation
                       setState(() {
                         _change = parsedAmount - cartState.total;
                       });
 
-                      // 3. Format the text for display in the controller
-                      // Only update if the parsed amount is not zero, to avoid formatting empty string
                       if (parsedAmount > 0) {
                         final formattedText = NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0).format(parsedAmount);
-                        // Prevent infinite loop by only updating if text actually changes
                         if (_amountPaidController.text != formattedText) {
                           _amountPaidController.value = TextEditingValue(
                             text: formattedText,
@@ -596,7 +587,6 @@ class _CartPanelState extends State<CartPanel> {
                           );
                         }
                       } else {
-                        // If parsed amount is 0 (e.g., empty input), clear the controller text
                         if (_amountPaidController.text.isNotEmpty) {
                           _amountPaidController.value = TextEditingValue(
                             text: '',
@@ -633,7 +623,7 @@ class _CartPanelState extends State<CartPanel> {
               ),
             ),
           ),
-          ElevatedButton( // This button remains outside the SingleChildScrollView
+          ElevatedButton(
             onPressed: cartState.items.isEmpty || _amountPaidController.text.isEmpty || _change < 0
                 ? null
                 : () {
@@ -693,6 +683,7 @@ class _CartPanelState extends State<CartPanel> {
                             : '',
                       ),
                     );
+                _amountPaidController.clear(); // Clear the text field
               },
               child: const Text('Konfirmasi'),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kasir_app/src/shared/widgets/printer_status_widget.dart';
 
 class MainWrapper extends StatelessWidget {
   const MainWrapper({
@@ -9,9 +10,36 @@ class MainWrapper extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  // Function to get the title based on the current index
+  String _getTitleForIndex(int index) {
+    switch (index) {
+      case 0:
+        return 'Kasir';
+      case 1:
+        return 'Manajemen Produk';
+      case 2:
+        return 'Laporan';
+      case 3:
+        return 'Manajemen Pengguna';
+      case 4:
+        return 'Pengaturan';
+      default:
+        return 'Aplikasi Kasir';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_getTitleForIndex(navigationShell.currentIndex)),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        actions: const [
+          PrinterStatusWidget(),
+          SizedBox(width: 8),
+        ],
+      ),
       body: navigationShell,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: navigationShell.currentIndex,

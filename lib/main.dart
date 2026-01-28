@@ -12,12 +12,8 @@ import 'package:kasir_app/src/data/repositories/auth_repository.dart'; // Add th
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  setupLocator();
+  await setupLocator();
   await getIt<DatabaseService>().database;
-
-  // Auto-connect to saved printer
-  final printingService = getIt<PrintingService>();
-  await printingService.autoConnectSavedPrinter(); // Attempt auto-connection
 
   runApp(const MyApp());
 }

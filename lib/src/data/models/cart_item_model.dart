@@ -1,9 +1,10 @@
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:kasir_app/src/data/models/product_model.dart';
 
 @immutable
-class CartItem {
+class CartItem extends Equatable {
   final Product product;
   final int quantity;
   final double costAtSale; // Harga beli produk saat transaksi terjadi
@@ -15,6 +16,9 @@ class CartItem {
 
   // Menghitung total biaya untuk item ini (berdasarkan harga beli saat penjualan)
   double get totalCost => costAtSale * quantity;
+
+  @override
+  List<Object> get props => [product, quantity, costAtSale];
 
   CartItem copyWith({
     Product? product,

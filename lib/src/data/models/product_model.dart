@@ -2,8 +2,6 @@
 
 import 'package:flutter/foundation.dart';
 
-enum UserRole { admin, employee }
-
 @immutable
 class Product {
   final String id;
