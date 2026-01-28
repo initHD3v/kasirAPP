@@ -1,97 +1,110 @@
-# Aplikasi Kasir Modern (Kasir App)
+# KasirApp: Solusi Aplikasi Kasir Multi-Platform Modern
 
-Aplikasi kasir modern yang dikembangkan dengan Flutter, dirancang untuk mengoptimalkan pengelolaan transaksi penjualan, produk, dan laporan secara efisien. Aplikasi ini mendukung tampilan responsif di berbagai perangkat, dilengkapi dengan fitur manajemen pengguna, pencetakan struk, serta kapabilitas backup dan restore data yang canggih.
+[![Flutter](https://img.shields.io/badge/Flutter-2.0.0+-blue?style=flat-square&logo=flutter)](https://flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.0.0+-blue?style=flat-square&logo=dart)](https://dart.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Fitur Utama
+## Ringkasan Proyek
 
-*   **Manajemen Produk:** Fasilitas lengkap untuk menambah, mengedit, dan menghapus produk, termasuk dukungan untuk gambar produk.
-*   **Transaksi Penjualan:** Memungkinkan proses transaksi yang cepat dengan antarmuka keranjang belanja interaktif, perhitungan total otomatis, dan pengelolaan pembayaran serta kembalian.
-    *   **Pencetakan Struk:** Desain struk yang ditingkatkan (mencakup nama toko "MD1", alamat "Jl. Kartini Saribudolok", nomor struk numerik, detail pembayaran & kembalian, tanpa pajak). Struk dapat dicetak ulang dari detail transaksi untuk efisiensi penggunaan kertas.
-*   **Laporan Penjualan:** Menyajikan laporan penjualan harian, mingguan, dan bulanan yang komprehensif, mencakup ringkasan pendapatan, jumlah transaksi, identifikasi produk terlaris, dan detail transaksi lengkap. Dilengkapi dengan grafik interaktif (line chart) untuk analisis visual.
-*   **Manajemen Pengguna:** Mengelola akun pengguna aplikasi dengan penetapan peran (Admin/Kasir) untuk kontrol akses yang granular.
-*   **Pengaturan Printer:** Konfigurasi mudah untuk printer thermal guna pencetakan struk penjualan.
-    *   **Otomatisasi Koneksi Printer:** Aplikasi secara cerdas mendeteksi dan secara otomatis terhubung ke printer Bluetooth yang tersimpan saat startup. Notifikasi status koneksi printer akan disajikan setelah login berhasil.
-*   **Autentikasi Pengguna:** Sistem login yang aman dan terintegrasi.
-    *   **Login Admin Default:** Untuk instalasi baru, aplikasi menyediakan login admin default dengan `username: admin` dan `password: admin` untuk memudahkan setup awal tanpa registrasi manual.
-*   **Backup & Restore Data:** Fitur vital untuk menjaga integritas data aplikasi.
-    *   **Pencadangan Data:** Membuat salinan database aplikasi ke lokasi penyimpanan lokal yang dapat dipilih pengguna.
-    *   **Pemulihan Data:** Mengembalikan kondisi database aplikasi dari file backup `.db` yang ada, dengan konfirmasi pemilihan file dari pengguna.
-*   **UI Modern & Responsif:** Antarmuka pengguna yang intuitif, estetis, dan adaptif, memastikan pengalaman yang konsisten di berbagai ukuran layar perangkat.
+KasirApp adalah aplikasi kasir (Point-of-Sale) yang dirancang untuk memberikan solusi manajemen penjualan yang efisien dan andal bagi berbagai jenis bisnis. Dibangun menggunakan **Flutter**, aplikasi ini menawarkan pengalaman pengguna yang intuitif dan responsif di berbagai platform, termasuk Android, iOS (potensial), macOS, Windows, Linux, dan Web. Fokus utama proyek ini adalah pada kemudahan penggunaan, keandalan data, serta integrasi fitur-fitur penting untuk operasional kasir modern.
 
-## Teknologi yang Digunakan
+## Fitur Unggulan
 
-*   **Flutter:** Framework UI terkemuka untuk pengembangan aplikasi multi-platform.
-*   **Bloc:** Arsitektur manajemen state yang handal dan prediktif.
-*   **SQFlite:** Solusi database SQLite lokal untuk penyimpanan data offline yang efisien.
-*   **GoRouter:** Implementasi navigasi deklaratif yang canggih.
-*   **GetIt:** Lightweight service locator untuk dependency injection.
-*   **fl_chart:** Pustaka visualisasi data untuk grafik yang menarik.
-*   **intl:** Utilitas untuk lokalisasi, termasuk pemformatan mata uang dan tanggal/waktu.
-*   **uuid:** Pustaka untuk menghasilkan pengenal unik universal (UUID).
-*   **crypto:** Pustaka kriptografi untuk hashing password secara aman.
-*   **permission_handler:** Untuk manajemen izin akses perangkat secara lintas platform.
-*   **path_provider:** Untuk mendapatkan jalur direktori file sistem perangkat.
-*   **file_picker:** Memungkinkan pengguna untuk memilih file dari penyimpanan perangkat.
-*   **image_picker:** Integrasi untuk memilih gambar dari galeri atau kamera.
-*   **flutter_image_compress:** Optimasi untuk kompresi gambar.
-*   **print_bluetooth_thermal:** Integrasi untuk pencetakan ke printer thermal melalui Bluetooth.
-*   **shared_preferences:** Penyimpanan data kunci-nilai sederhana untuk preferensi pengguna.
-*   **device_info_plus:** Menyediakan informasi detail tentang perangkat.
-*   **esc_pos_utils_plus, image:** Pustaka pendukung untuk formatting ESC/POS dan pemrosesan gambar cetak.
+KasirApp dilengkapi dengan serangkaian fitur canggih yang dirancang untuk mendukung operasional bisnis Anda:
 
-## Perbaikan dan Peningkatan Terkini
+*   **Manajemen Produk Komprehensif:**
+    *   Sistem CRUD (Create, Read, Update, Delete) yang lengkap untuk produk.
+    *   Dukungan pengelolaan stok dan harga jual/modal.
+    *   Kemampuan menyertakan gambar produk untuk identifikasi visual yang mudah.
+*   **Proses Transaksi Cepat & Akurat:**
+    *   Antarmuka kasir interaktif dengan keranjang belanja dinamis.
+    *   Perhitungan total otomatis, pengelolaan pembayaran, dan kalkulasi kembalian.
+    *   **Pencetakan Struk Canggih:** Desain struk yang profesional dan informatif (Nama Toko, Alamat, ID Transaksi unik, detail pembayaran, kembalian). Mendukung pencetakan ulang struk dari riwayat transaksi.
+*   **Analisis Laporan Penjualan Mendalam:**
+    *   Generasi laporan penjualan harian, mingguan, dan bulanan.
+    *   Ringkasan pendapatan, jumlah transaksi, dan identifikasi produk terlaris.
+    *   Visualisasi data interaktif menggunakan grafik (line charts) untuk analisis tren yang lebih baik.
+*   **Manajemen Pengguna Fleksibel:**
+    *   Sistem manajemen peran berbasis akses (Admin/Kasir) untuk kontrol operasional yang aman.
+    *   **Login Admin Default:** Untuk kemudahan setup awal pada instalasi baru, aplikasi menyediakan kredensial admin default (`username: admin`, `password: admin`).
+*   **Infrastruktur Data Andal:**
+    *   **Pencadangan Data (Backup):** Fitur esensial untuk membuat salinan database lokal ke lokasi yang dapat dipilih pengguna, menjamin keamanan data.
+    *   **Pemulihan Data (Restore):** Memungkinkan pemulihan database aplikasi dari file backup `.db` yang dipilih, memastikan kelangsungan operasional.
+*   **Integrasi Printer Thermal:**
+    *   Konfigurasi mudah dengan printer thermal Bluetooth untuk pencetakan struk instan.
+    *   **Otomatisasi Koneksi:** Aplikasi secara otomatis mendeteksi dan terhubung ke printer yang tersimpan saat startup, dengan notifikasi status koneksi yang jelas.
+*   **Pengalaman Pengguna Superior:**
+    *   **Antarmuka Pengguna Modern & Responsif (UI/UX):** Desain yang intuitif, estetis, dan adaptif, memastikan konsistensi dan kemudahan penggunaan di berbagai ukuran layar dan orientasi perangkat.
+    *   **Autentikasi Aman:** Implementasi sistem login yang menjaga keamanan data pengguna.
 
-*   **Perbaikan Parsing Jumlah Pembayaran:** Mengatasi masalah di dialog konfirmasi pembayaran yang gagal mengurai input numerik dengan pemisah ribuan (misalnya, "50.000").
-*   **Perbaikan Laporan Penjualan:** Menyelesaikan `ReportsBloc` ProviderNotFoundException dan masalah tata letak `RenderFlex overflow` serta `Vertical viewport unbounded height`, memastikan detail transaksi ditampilkan dengan benar sesuai periode laporan.
-*   **Perbaikan Restore Data:** Mengatasi `PlatformException` pada fitur restore data dengan menggunakan `FileType.any` dan validasi ekstensi `.db` secara manual, meningkatkan kompatibilitas di berbagai perangkat Android.
+## Tumpukan Teknologi (Tech Stack)
 
-## Instalasi dan Setup
+Proyek ini dibangun di atas tumpukan teknologi modern yang memastikan performa tinggi, skalabilitas, dan kemudahan pemeliharaan:
 
-Pastikan Anda telah menginstal Flutter SDK.
+*   **Framework UI:** `Flutter` (memungkinkan pengembangan lintas platform dari satu basis kode).
+*   **Manajemen State:** `Bloc` (untuk manajemen state yang reaktif, prediktif, dan teruji).
+*   **Database Lokal:** `SQFlite` (implementasi SQLite yang efisien untuk penyimpanan data offline).
+*   **Navigasi:** `GoRouter` (solusi routing deklaratif yang kuat).
+*   **Injeksi Dependensi:** `GetIt` (service locator ringan untuk manajemen dependensi yang bersih).
+*   **Visualisasi Data:** `fl_chart` (untuk grafik interaktif pada laporan penjualan).
+*   **Utilitas Sistem:** `permission_handler`, `path_provider`, `file_picker`, `device_info_plus` (untuk interaksi mendalam dengan sistem operasi dan penyimpanan perangkat).
+*   **Pengolahan Data & Media:** `intl`, `uuid`, `crypto`, `image_picker`, `flutter_image_compress`, `esc_pos_utils_plus`, `image` (untuk lokalisasi, generasi ID, keamanan data, pemilihan/kompresi gambar, dan formatting cetak).
+*   **Integrasi Hardware:** `print_bluetooth_thermal` (untuk konektivitas printer thermal).
 
-1.  **Clone Repositori:**
+## Panduan Instalasi & Penggunaan (Developer)
+
+Untuk menjalankan dan mengembangkan KasirApp di lingkungan lokal Anda:
+
+1.  **Persyaratan:** Pastikan Anda memiliki Flutter SDK terinstal (versi 3.8.1 atau lebih baru direkomendasikan).
+
+2.  **Kloning Repositori:**
     ```bash
     git clone https://github.com/initialh/kasir_app.git
     cd kasir_app
     ```
 
-2.  **Dapatkan Dependensi:**
+3.  **Instal Dependensi:**
     ```bash
     flutter pub get
     ```
 
-3.  **Jalankan Aplikasi:**
-    *   **Untuk Debugging (misalnya, di macOS):**
+4.  **Menjalankan Aplikasi:**
+    *   **Mode Debug:** Untuk pengembangan dan pengujian cepat.
         ```bash
-        flutter run -d macos
+        flutter run -d <target_device_id>
+        # Contoh: flutter run -d macos
+        # Contoh: flutter run -d 21051182G (ID perangkat Android fisik)
         ```
-        Ganti `macos` dengan `android` atau `emulator-id` sesuai kebutuhan.
-    *   **Untuk Membangun Aplikasi Rilis (misalnya, Android APK):**
+    *   **Membangun Rilis Produksi:** Untuk distribusi aplikasi.
         ```bash
-        flutter build apk --release
+        flutter build apk --release       # Android APK
+        flutter build ios                 # iOS App Bundle
+        flutter build macos               # macOS Desktop App
+        # ... dan platform lainnya
         ```
-        Untuk platform lain:
-        ```bash
-        flutter build ios
-        flutter build macos
-        # dll.
-        ```
-    *   **Catatan Izin Android:** Untuk fitur Backup/Restore di Android 11 (API 30) ke atas, aplikasi akan meminta izin "Akses semua file". Anda mungkin perlu memberikan izin ini secara manual melalui pengaturan aplikasi (`Pengaturan > Aplikasi > [Nama Aplikasi] > Izin > File dan media`). Untuk Android 10 (API 29) ke bawah, izin penyimpanan standar akan diminta.
 
-## Penggunaan
+5.  **Catatan Penting untuk Android (Izin Penyimpanan):**
+    *   Untuk fungsionalitas Backup/Restore di Android 11 (API 30) ke atas, aplikasi memerlukan izin "Akses semua file" (`MANAGE_EXTERNAL_STORAGE`). Anda mungkin perlu memberikan izin ini secara manual melalui pengaturan aplikasi (`Pengaturan > Aplikasi > [Nama Aplikasi] > Izin > File dan media`).
+    *   Untuk Android 10 (API 29) ke bawah, izin penyimpanan standar akan diminta secara otomatis oleh aplikasi.
 
-*   **Login Awal:** Untuk penggunaan pertama, gunakan kredensial admin default: `username: admin`, `password: admin`.
-*   **Navigasi:** Gunakan bilah navigasi bawah untuk berpindah antar modul (Kasir, Produk, Laporan, Pengguna, Pengaturan).
-*   **Akses Pengaturan Data:** Dari tab "Pengaturan", pilih "Pengaturan Data" untuk mengakses fungsi Backup dan Restore.
-    *   **Backup Data:** Tekan "Cadangkan Data" dan pilih folder tujuan penyimpanan file backup.
-    *   **Restore Data:** Tekan "Pulihkan Data" dan pilih file backup `.db` dari penyimpanan perangkat Anda.
-*   **Transaksi:** Pilih produk dari daftar, tambahkan ke keranjang, tentukan jumlah pembayaran, dan selesaikan transaksi.
-*   **Laporan:** Jelajahi laporan harian, mingguan, atau bulanan untuk mendapatkan analisis penjualan yang mendalam.
+### Penggunaan Fitur Utama
+
+*   **Login Awal:** Gunakan kredensial admin default (`username: admin`, `password: admin`) untuk instalasi baru.
+*   **Navigasi:** Antarmuka navigasi bawah menyediakan akses cepat ke modul utama: Kasir, Produk, Laporan, Pengguna, dan Pengaturan.
+*   **Manajemen Data (Backup/Restore):** Akses fitur ini melalui tab "Pengaturan" > "Pengaturan Data".
+    *   **Backup:** Pilih "Cadangkan Data" dan tentukan folder tujuan penyimpanan file backup `.db`.
+    *   **Restore:** Pilih "Pulihkan Data" dan navigasikan ke file backup `.db` Anda.
 
 ## Kontribusi
 
-Kontribusi dalam bentuk pelaporan bug, saran fitur, atau pull request sangat kami hargai. Silakan buka issue di repositori ini.
+Kami menyambut kontribusi dari komunitas developer! Jika Anda memiliki ide untuk peningkatan, menemukan bug, atau ingin menambahkan fitur baru, silakan:
+1.  Buka [Issue](https://github.com/initialh/kasir_app/issues) baru untuk diskusi.
+2.  Ajukan [Pull Request](https://github.com/initialh/kasir_app/pulls) dengan perubahan yang diusulkan.
 
 ## Lisensi
 
-Proyek ini dilisensikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk informasi detail.
+Proyek ini didistribusikan di bawah Lisensi MIT. Detail lengkap dapat ditemukan dalam file `LICENSE` di repositori ini.
+
+---
+
+**[initialH](https://github.com/initialh)** – Kontak melalui [hidayatfauzi6@gmail.com](mailto:hidayatfauzi6@gmail.com)
