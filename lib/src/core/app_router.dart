@@ -8,6 +8,8 @@ import 'package:kasir_app/src/features/auth/splash_page.dart';
 import 'package:kasir_app/src/features/products/products_page.dart';
 import 'package:kasir_app/src/features/reports/reports_page.dart';
 import 'package:kasir_app/src/features/settings/printer_settings_page.dart';
+import 'package:kasir_app/src/features/settings/data_settings_page.dart'; // New import
+import 'package:kasir_app/src/features/settings/settings_page.dart'; // New import
 import 'package:kasir_app/src/features/transaction/transaction_page.dart';
 import 'package:kasir_app/src/features/users/user_management_page.dart';
 import 'package:kasir_app/src/features/transaction/transaction_detail_page.dart';
@@ -89,13 +91,25 @@ class AppRouter {
               ),
             ],
           ),
-          // Pengaturan (PrinterSettingsPage)
+          // Pengaturan (SettingsPage, PrinterSettingsPage, DataSettingsPage)
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/settings/printer',
-                name: 'printer-settings',
-                builder: (context, state) => const PrinterSettingsPage(),
+                path: '/settings',
+                name: 'settings',
+                builder: (context, state) => const SettingsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'printer', // '/settings/printer'
+                    name: 'printer-settings',
+                    builder: (context, state) => const PrinterSettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'data', // '/settings/data'
+                    name: 'data-settings',
+                    builder: (context, state) => const DataSettingsPage(),
+                  ),
+                ],
               ),
             ],
           ),

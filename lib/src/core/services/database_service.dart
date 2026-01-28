@@ -1,11 +1,12 @@
 
-
 import 'dart:convert';
+import 'dart:io'; // New import for File operations
 import 'package:crypto/crypto.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
+import 'package:permission_handler/permission_handler.dart'; // New import for permission_handler
 
 class DatabaseService {
   Database? _database;
@@ -34,10 +35,10 @@ class DatabaseService {
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             price REAL NOT NULL,
-            cost REAL NOT NULL DEFAULT 0.0, -- Kolom cost ditambahkan
+            cost REAL NOT NULL DEFAULT 0.0,
             category TEXT,
             image_url TEXT,
-            stock INTEGER NOT NULL DEFAULT 0 -- Kolom stock ditambahkan
+            stock INTEGER NOT NULL DEFAULT 0
           )
           """,
         );
@@ -45,13 +46,13 @@ class DatabaseService {
           """
           CREATE TABLE transactions(
             id TEXT PRIMARY KEY,
-            items TEXT NOT NULL, -- Simpan sebagai JSON String
+            items TEXT NOT NULL,
             total_amount REAL NOT NULL,
             payment_method TEXT NOT NULL,
             amount_paid REAL NOT NULL DEFAULT 0.0,
             change REAL NOT NULL DEFAULT 0.0,
             cashier_id TEXT NOT NULL DEFAULT '',
-            created_at TEXT NOT NULL -- Simpan sebagai ISO 8601 String
+            created_at TEXT NOT NULL
           )
           """,
         );
@@ -65,22 +66,17 @@ class DatabaseService {
           )
           """,
         );
-        // Tambahkan user admin default
         await _createDefaultAdmin(database);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
-          // Migrasi dari versi 1 ke versi 2: Tambah kolom 'cost' ke tabel 'products'
           await db.execute("ALTER TABLE products ADD COLUMN cost REAL NOT NULL DEFAULT 0.0;");
         }
         if (oldVersion < 3) {
-          // Migrasi dari versi 2 ke versi 3: Tambah kolom 'amount_paid', 'change', 'cashier_id' ke tabel 'transactions'
           await db.execute("ALTER TABLE transactions ADD COLUMN amount_paid REAL NOT NULL DEFAULT 0.0;");
           await db.execute("ALTER TABLE transactions ADD COLUMN change REAL NOT NULL DEFAULT 0.0;");
-          await db.execute("ALTER TABLE transactions ADD COLUMN cashier_id TEXT NOT NULL DEFAULT '';");
         }
         if (oldVersion < 4) {
-          // Migrasi dari versi 3 ke versi 4: Tambah kolom 'stock' ke tabel 'products'
           await db.execute("ALTER TABLE products ADD COLUMN stock INTEGER NOT NULL DEFAULT 0;");
         }
       },
@@ -99,5 +95,51 @@ class DatabaseService {
       await db.insert('users', defaultAdmin.toMap());
     }
   }
-}
 
+  /// Backup the database to a specified destination.
+  Future<void> backupDatabase(String destinationPath) async {
+    final currentDbPath = await fullPath;
+    final backupFile = File(destinationPath);
+    final currentDbFile = File(currentDbPath);
+
+    if (await currentDbFile.exists()) {
+      // Ensure the destination directory exists
+      await backupFile.parent.create(recursive: true);
+      await currentDbFile.copy(backupFile.path);
+      print('Database backed up to: $destinationPath');
+    } else {
+      print('Original database file not found at: $currentDbPath');
+      throw Exception('Original database file not found.');
+    }
+  }
+
+  /// Restore the database from a specified backup file.
+  Future<void> restoreDatabase(String backupFilePath) async {
+    final currentDbPath = await fullPath;
+    final backupFile = File(backupFilePath);
+    final currentDbFile = File(currentDbPath);
+
+    if (!await backupFile.exists()) {
+      print('Backup file not found at: $backupFilePath');
+      throw Exception('Backup file not found.');
+    }
+
+    // Close the existing database connection if open
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+      _database = null; // Set to null to force re-initialization
+    }
+
+    // Delete the existing database file
+    if (await currentDbFile.exists()) {
+      await currentDbFile.delete();
+    }
+
+    // Copy the backup file to the database location
+    await backupFile.copy(currentDbPath);
+    print('Database restored from: $backupFilePath');
+
+    // Re-initialize the database
+    _database = await _initializeDB();
+  }
+}

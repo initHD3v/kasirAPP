@@ -26,6 +26,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   void _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
     await Future.delayed(const Duration(seconds: 2));
+    await _authRepository.initAdmin(); // Initialize default admin
     emit(AuthenticationUnauthenticated());
   }
 }
