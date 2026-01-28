@@ -27,7 +27,7 @@ class DatabaseService {
     final path = await fullPath;
     return await openDatabase(
       path,
-      version: 4, // Versi database ditingkatkan
+      version: 5, // Versi database ditingkatkan untuk kolom 'category' pada produk
       onCreate: (database, version) async {
         await database.execute(
           """

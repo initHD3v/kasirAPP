@@ -11,6 +11,7 @@ import 'package:kasir_app/src/data/models/cart_item_model.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
+import 'package:kasir_app/src/data/repositories/product_repository.dart'; // New import
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_event.dart';
@@ -281,12 +282,15 @@ class ProductGrid extends StatefulWidget {
   State<ProductGrid> createState() => _ProductGridState();
 }
 
-class _ProductGridState extends State<ProductGrid> with SingleTickerProviderStateMixin { // Add SingleTickerProviderStateMixin
+class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final Debouncer _debouncer = Debouncer(milliseconds: 500);
+  late TabController _tabController;
+  List<String> _categories = [];
+  String? _selectedCategory;
 
-  bool _isReordering = false; // New state to track reorder mode
-  late AnimationController _animationController; // For the wiggle effect
+  bool _isReordering = false;
+  late AnimationController _animationController;
 
   @override
   void initState() {
@@ -295,13 +299,44 @@ class _ProductGridState extends State<ProductGrid> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    context.read<ProductBloc>().add(const LoadProducts()); // Initial load of products
+    _loadCategories().then((_) { // Ensure categories are loaded before initializing TabController
+      _tabController = TabController(length: _categories.length, vsync: this);
+      _tabController.addListener(_onTabChanged);
+      // Dispatch initial load after categories are set
+      _selectedCategory = _tabController.index == 0 ? null : _categories[_tabController.index];
+      context.read<ProductBloc>().add(LoadProducts(
+        query: _searchController.text,
+        category: _selectedCategory,
+      ));
+    });
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) {
+      setState(() {
+        _selectedCategory = _tabController.index == 0 ? null : _categories[_tabController.index];
+        context.read<ProductBloc>().add(LoadProducts(
+          query: _searchController.text,
+          category: _selectedCategory,
+        ));
+      });
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    final productRepository = getIt<ProductRepository>();
+    final fetchedCategories = await productRepository.getUniqueCategories();
+    setState(() {
+      _categories = ['Semua Produk', ...fetchedCategories]; // Add "All Products" as the first option
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _animationController.dispose();
+    _tabController.removeListener(_onTabChanged); // Remove listener
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -325,12 +360,33 @@ class _ProductGridState extends State<ProductGrid> with SingleTickerProviderStat
             ),
             onChanged: (query) {
               _debouncer.run(() {
-                // Update the search query locally and trigger a rebuild
-                setState(() {
-                  // No need to dispatch LoadProducts with query anymore, just update local state
-                });
+                context.read<ProductBloc>().add(LoadProducts(
+                  query: query,
+                  category: _selectedCategory, // Pass selected category
+                ));
               });
             },
+          ),
+        ),
+        // New: TabBar for categories
+        PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            flexibleSpace: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.indigo,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.indigo,
+                  tabs: _categories.map((category) => Tab(text: category)).toList(),
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -339,10 +395,7 @@ class _ProductGridState extends State<ProductGrid> with SingleTickerProviderStat
               if (state is ProductLoading || state is ProductInitial) {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is ProductLoaded) {
-                final String currentSearchQuery = _searchController.text.toLowerCase();
-                final List<Product> displayedProducts = state.products.where((product) {
-                  return product.name.toLowerCase().contains(currentSearchQuery);
-                }).toList();
+                final List<Product> displayedProducts = state.products; // Products are already filtered by bloc
 
                 if (displayedProducts.isEmpty) {
                   return const Center(child: Text('Tidak ada produk ditemukan.'));

@@ -17,10 +17,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   void _onLoadProducts(LoadProducts event, Emitter<ProductState> emit) async {
-    debugPrint('Handling LoadProducts event with query: ${event.query}');
+    debugPrint('Handling LoadProducts event with query: ${event.query}, category: ${event.category}');
     emit(ProductLoading());
     try {
-      final products = await _productRepository.getProducts(query: event.query);
+      final products = await _productRepository.getProducts(query: event.query, category: event.category);
       debugPrint('Products loaded: ${products.length}');
       emit(ProductLoaded(products));
     } catch (e) {

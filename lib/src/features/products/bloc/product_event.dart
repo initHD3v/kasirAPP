@@ -12,11 +12,12 @@ abstract class ProductEvent extends Equatable {
 // Event untuk memuat semua produk, dengan opsi filter pencarian
 class LoadProducts extends ProductEvent {
   final String query;
+  final String? category; // New optional category filter
 
-  const LoadProducts({this.query = ''});
+  const LoadProducts({this.query = '', this.category});
 
   @override
-  List<Object> get props => [query];
+  List<Object> get props => [query, category ?? '']; // Include category in props
 }
 
 // Event untuk menambah produk

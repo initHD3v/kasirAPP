@@ -7,16 +7,32 @@ import 'package:sqflite/sqflite.dart';
 class ProductRepository {
   final DatabaseService _databaseService = getIt<DatabaseService>();
 
-  // Mengambil semua produk, dengan opsi filter pencarian berdasarkan nama
-  Future<List<Product>> getProducts({String? query}) async {
+  // Mengambil semua produk, dengan opsi filter pencarian berdasarkan nama dan/atau kategori
+  Future<List<Product>> getProducts({String? query, String? category}) async {
     final db = await _databaseService.database;
     List<Map<String, dynamic>> maps;
 
+    String whereClause = '';
+    List<dynamic> whereArgs = [];
+
     if (query != null && query.isNotEmpty) {
+      whereClause += 'name LIKE ?';
+      whereArgs.add('%$query%');
+    }
+
+    if (category != null && category.isNotEmpty) {
+      if (whereClause.isNotEmpty) {
+        whereClause += ' AND ';
+      }
+      whereClause += 'category = ?';
+      whereArgs.add(category);
+    }
+    
+    if (whereClause.isNotEmpty) {
       maps = await db.query(
         'products',
-        where: 'name LIKE ?',
-        whereArgs: ['%$query%'],
+        where: whereClause,
+        whereArgs: whereArgs,
         orderBy: 'name ASC',
       );
     } else {
@@ -57,5 +73,17 @@ class ProductRepository {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Mengambil daftar kategori unik dari semua produk yang tersedia.
+  Future<List<String>> getUniqueCategories() async {
+    final db = await _databaseService.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'products',
+      columns: ['DISTINCT category'],
+      where: 'category IS NOT NULL AND category != ?', // Filter out nulls and empty strings
+      whereArgs: [''],
+    );
+    return maps.map((map) => map['category'] as String).toList();
   }
 }

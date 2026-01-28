@@ -265,6 +265,9 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
 
   bool get isEditing => widget.product != null;
 
+  final List<String> _defaultCategories = ['Makanan', 'Minuman', 'A la carte'];
+  String? _selectedCategory; // Holds the selected category from the dropdown
+
   @override
   void initState() {
     super.initState();
@@ -272,6 +275,9 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
       _nameController.text = widget.product!.name;
       _priceController.text = widget.product!.price.toString();
       _existingImageUrl = widget.product!.imageUrl; // Store existing image URL
+      _selectedCategory = widget.product!.category; // Set selected category from existing product
+    } else {
+      _selectedCategory = _defaultCategories.first; // Default to first category for new products
     }
   }
 
@@ -336,7 +342,22 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Harga jual tidak boleh kosong' : null,
               ),
-              
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(labelText: 'Kategori Produk'),
+                items: _defaultCategories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue;
+                  });
+                },
+                validator: (value) => value == null || value.isEmpty ? 'Kategori tidak boleh kosong' : null,
+              ),
             ],
           ),
         ),
@@ -368,7 +389,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 name: _nameController.text,
                 price: double.parse(_priceController.text),
                 cost: isEditing ? widget.product!.cost : 0.0, // Default to 0.0 for new products
-                
+                category: _selectedCategory, // Use selected category from dropdown
                 imageUrl: imageUrlBase64,
               );
 
