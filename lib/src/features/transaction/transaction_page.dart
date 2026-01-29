@@ -18,6 +18,7 @@ import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/products/bloc/product_state.dart';
 import 'package:kasir_app/src/features/transaction/bloc/cart_bloc.dart';
 import 'package:kasir_app/src/features/transaction/bloc/transaction_bloc.dart';
+import 'package:kasir_app/src/shared/widgets/printer_status_widget.dart'; // New import
 import 'dart:async';
 
 class TransactionPage extends StatefulWidget {
@@ -186,38 +187,9 @@ class _TransactionPageState extends State<TransactionPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      BlocBuilder<AuthBloc, AuthState>(
-                        builder: (context, state) {
-                          if (state is AuthenticationAuthenticated && state.user.role == UserRole.admin) {
-                            return Row(
-                              children: [
-                                // Commented out the printer settings button:
-                                // IconButton(
-                                //   icon: const Icon(Icons.print_outlined, color: Colors.black),
-                                //   tooltip: 'Pengaturan Printer',
-                                //   onPressed: () => context.go('/settings/printer'),
-                                // ),
-                                IconButton(
-                                  icon: const Icon(Icons.group, color: Colors.black),
-                                  tooltip: 'Manajemen Pengguna',
-                                  onPressed: () => context.go('/users'),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.bar_chart, color: Colors.black),
-                                  tooltip: 'Laporan Penjualan',
-                                  onPressed: () => context.go('/reports'),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.inventory, color: Colors.black),
-                                  tooltip: 'Manajemen Produk',
-                                  onPressed: () => context.go('/products'),
-                                ),
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
+                      // Repositioned PrinterStatusWidget
+                      const PrinterStatusWidget(),
+                      const SizedBox(width: 8), // Spacing between printer status and logout
                       BlocBuilder<AuthBloc, AuthState>(
                         builder: (context, state) {
                           if (state is AuthenticationAuthenticated) {
@@ -288,6 +260,7 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
   late TabController _tabController;
   List<String> _categories = [];
   String? _selectedCategory;
+  late Future<void> _categoriesFuture; // New: Future to track category loading
 
   bool _isReordering = false;
   late AnimationController _animationController;
@@ -299,10 +272,16 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _loadCategories().then((_) { // Ensure categories are loaded before initializing TabController
+    // Initialize _categoriesFuture and handle TabController setup in its .then()
+    _categoriesFuture = _loadCategories().then((_) {
+      // Ensure the widget is still mounted before accessing context or setState
+      if (!mounted) return;
+
+      // Initialize _tabController here after categories are loaded
       _tabController = TabController(length: _categories.length, vsync: this);
       _tabController.addListener(_onTabChanged);
-      // Dispatch initial load after categories are set
+
+      // Trigger initial load of products after categories and TabController are ready
       _selectedCategory = _tabController.index == 0 ? null : _categories[_tabController.index];
       context.read<ProductBloc>().add(LoadProducts(
         query: _searchController.text,
@@ -326,16 +305,18 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
   Future<void> _loadCategories() async {
     final productRepository = getIt<ProductRepository>();
     final fetchedCategories = await productRepository.getUniqueCategories();
-    setState(() {
-      _categories = ['Semua Produk', ...fetchedCategories]; // Add "All Products" as the first option
-    });
+    if (mounted) {
+      setState(() {
+        _categories = ['Semua Produk', ...fetchedCategories]; // Add "All Products" as the first option
+      });
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _animationController.dispose();
-    _tabController.removeListener(_onTabChanged); // Remove listener
+    _tabController.removeListener(_onTabChanged); // Make sure listener is removed before dispose
     _tabController.dispose();
     super.dispose();
   }
@@ -368,58 +349,76 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
             },
           ),
         ),
-        // New: TabBar for categories
-        PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            flexibleSpace: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  labelColor: Colors.indigo,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: Colors.indigo,
-                  tabs: _categories.map((category) => Tab(text: category)).toList(),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: BlocBuilder<ProductBloc, ProductState>(
-            builder: (context, state) {
-              if (state is ProductLoading || state is ProductInitial) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (state is ProductLoaded) {
-                final List<Product> displayedProducts = state.products; // Products are already filtered by bloc
+        // Wrap TabBar and product grid in a FutureBuilder
+        FutureBuilder<void>(
+          future: _categoriesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error loading categories: ${snapshot.error}'));
+            } else {
+              // Once categories are loaded, render the TabBar and products
+              return Expanded( // Wrap the rest of the content in Expanded
+                child: Column(
+                  children: [
+                    PreferredSize(
+                      preferredSize: const Size.fromHeight(kToolbarHeight),
+                      child: AppBar(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        flexibleSpace: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TabBar(
+                              controller: _tabController,
+                              isScrollable: true,
+                              labelColor: Colors.indigo,
+                              unselectedLabelColor: Colors.grey,
+                              indicatorColor: Colors.indigo,
+                              tabs: _categories.map((category) => Tab(text: category)).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: BlocBuilder<ProductBloc, ProductState>(
+                        builder: (context, state) {
+                          if (state is ProductLoading || state is ProductInitial) {
+                            return const Center(child: CircularProgressIndicator());
+                          } else if (state is ProductLoaded) {
+                            final List<Product> displayedProducts = state.products;
 
-                if (displayedProducts.isEmpty) {
-                  return const Center(child: Text('Tidak ada produk ditemukan.'));
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4, // Changed from 3 to 4
-                    crossAxisSpacing: 8.0,
-                    mainAxisSpacing: 8.0,
-                    childAspectRatio: 0.7, // Changed from 0.8 to 0.7
-                  ),
-                  itemCount: displayedProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = displayedProducts[index];
-                    return ProductCard(product: product);
-                  },
-                );
-              } else if (state is ProductError) {
-                return Center(child: Text('Error: ${state.message}'));
-              }
-              return const Center(child: Text('State tidak diketahui.'));
-            },
-          ),
+                            if (displayedProducts.isEmpty) {
+                              return const Center(child: Text('Tidak ada produk ditemukan.'));
+                            }
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(8.0),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                crossAxisSpacing: 8.0,
+                                mainAxisSpacing: 8.0,
+                                childAspectRatio: 0.7,
+                              ),
+                              itemCount: displayedProducts.length,
+                              itemBuilder: (context, index) {
+                                final product = displayedProducts[index];
+                                return ProductCard(product: product);
+                              },
+                            );
+                          } else if (state is ProductError) {
+                            return Center(child: Text('Error: ${state.message}'));
+                          }
+                          return const Center(child: Text('State tidak diketahui.'));
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
         ),
       ],
     );

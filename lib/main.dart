@@ -9,9 +9,11 @@ import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 import 'package:kasir_app/src/data/repositories/auth_repository.dart'; // Add this import
+import 'package:intl/date_symbol_data_local.dart'; // New import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null); // Initialize date formatting for Indonesian locale
   await setupLocator();
   await getIt<DatabaseService>().database;
 

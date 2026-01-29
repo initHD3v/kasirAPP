@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kasir_app/src/shared/widgets/printer_status_widget.dart';
+import 'dart:async'; // New import for Timer
+import 'package:intl/intl.dart'; // New import for DateFormat
 
-class MainWrapper extends StatelessWidget {
+class MainWrapper extends StatefulWidget {
   const MainWrapper({
     required this.navigationShell,
     Key? key,
@@ -10,11 +11,38 @@ class MainWrapper extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  @override
+  State<MainWrapper> createState() => _MainWrapperState();
+}
+
+class _MainWrapperState extends State<MainWrapper> {
+  late DateTime _currentDateTime;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDateTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentDateTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
   // Function to get the title based on the current index
   String _getTitleForIndex(int index) {
     switch (index) {
       case 0:
-        return 'Kasir';
+        return 'MD 1 KASIR'; // Changed title for Kasir tab
       case 1:
         return 'Manajemen Produk';
       case 2:
@@ -32,27 +60,44 @@ class MainWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getTitleForIndex(navigationShell.currentIndex)),
+        title: (widget.navigationShell.currentIndex == 0)
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center, // Center content vertically
+                crossAxisAlignment: CrossAxisAlignment.center, // Center content horizontally
+                children: [
+                  Text(
+                    _getTitleForIndex(widget.navigationShell.currentIndex),
+                    style: const TextStyle(
+                      fontSize: 22, // Larger font size
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('EEEE, dd MMMM yyyy, HH:mm:ss', 'id_ID').format(_currentDateTime),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              )
+            : Text(_getTitleForIndex(widget.navigationShell.currentIndex)),
+        centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 1,
         actions: const [
-          PrinterStatusWidget(),
-          SizedBox(width: 8),
+          SizedBox(width: 8), // Keep a small spacing if desired, or remove entirely
         ],
       ),
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navigationShell.currentIndex,
+        currentIndex: widget.navigationShell.currentIndex,
         selectedItemColor: Colors.blue, // Warna ikon yang dipilih
         unselectedItemColor: Colors.grey, // Warna ikon yang tidak dipilih
         onTap: (index) {
-          navigationShell.goBranch(
+          widget.navigationShell.goBranch(
             index,
-            // A common pattern when using bottom navigation bars is to support
-            // navigating to the initial location when tapping the item that is
-            // already active. This is accomplished by setting
-            // `initialLocation` to true in the `goBranch` call.
-            initialLocation: index == navigationShell.currentIndex,
+            initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
         items: const <BottomNavigationBarItem>[
@@ -74,7 +119,7 @@ class MainWrapper extends StatelessWidget {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'Pengaturan', // Group printer settings here or create a dedicated settings page
+            label: 'Pengaturan',
           ),
         ],
       ),
