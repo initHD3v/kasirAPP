@@ -20,6 +20,7 @@ import 'package:kasir_app/src/features/transaction/bloc/cart_bloc.dart';
 import 'package:kasir_app/src/features/transaction/bloc/transaction_bloc.dart';
 import 'package:kasir_app/src/shared/widgets/printer_status_widget.dart'; // New import
 import 'dart:async';
+import 'package:package_info_plus/package_info_plus.dart'; // New import
 
 class TransactionPage extends StatefulWidget {
   const TransactionPage({super.key});
@@ -31,12 +32,26 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   BuildContext? _loadingDialogContext;
   final PrintingService _printingService = getIt<PrintingService>();
+  PackageInfo _packageInfo = PackageInfo(
+    appName: 'Unknown',
+    packageName: 'Unknown',
+    version: 'Unknown',
+    buildNumber: 'Unknown',
+  );
 
   @override
   void initState() {
     super.initState();
+    _initPackageInfo();
     _printingService.state.addListener(_onPrinterStateChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _onPrinterStateChanged()); // Initial check
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+    });
   }
 
   @override
@@ -70,7 +85,66 @@ class _TransactionPageState extends State<TransactionPage> {
         ),
       );
     }
-    // No explicit notification for 'connecting' as it's typically transient
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Row(
+            children: [
+              Image.asset('assets/images/logo.png', width: 40, height: 40), // Your app logo
+              const SizedBox(width: 10),
+              const Text('Tentang MDKASIR'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                const Text(
+                  'MDKASIR adalah solusi Point-of-Sale (POS) modern yang dirancang untuk membantu bisnis Anda mengelola transaksi dengan efisien dan mudah.',
+                  style: TextStyle(fontSize: 14),
+                  textAlign: TextAlign.justify,
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'Versi Aplikasi: ${_packageInfo.version} (${_packageInfo.buildNumber})',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'Pengembang:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const Text('Hidayat Fauzi'),
+                const Text('Email: hidayatfauzi6@gmail.com'),
+                const SizedBox(height: 15),
+                const Divider(),
+                const SizedBox(height: 10),
+                const Text(
+                  '© 2026 MDKASIR - Developer Team',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const Text(
+                  'Semua hak cipta dilindungi.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Tutup'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _handleTransactionSuccess(BuildContext context, TransactionModel transaction) async {
@@ -89,7 +163,7 @@ class _TransactionPageState extends State<TransactionPage> {
           actions: [
             TextButton(
               onPressed: () {
-                if (dialogContext.mounted) { // Add this check
+                if (dialogContext.mounted) {
                   Navigator.pop(dialogContext);
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -100,18 +174,18 @@ class _TransactionPageState extends State<TransactionPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final messenger = ScaffoldMessenger.of(context); // Get messenger here
-                if (dialogContext.mounted) { // Add this check
+                final messenger = ScaffoldMessenger.of(context);
+                if (dialogContext.mounted) {
                   Navigator.pop(dialogContext);
                 }
                 try {
                   await getIt<PrintingService>().printReceipt(transaction);
-                  if (!context.mounted) return; // Add this check
+                  if (!context.mounted) return;
                   messenger.showSnackBar(
                     const SnackBar(content: Text('Struk dikirim ke printer.'), backgroundColor: Colors.green),
                   );
                 } catch (e) {
-                  if (!context.mounted) return; // Add this check
+                  if (!context.mounted) return;
                   messenger.showSnackBar(
                     SnackBar(content: Text('Gagal mencetak: ${e.toString()}'), backgroundColor: Colors.red),
                   );
@@ -127,7 +201,7 @@ class _TransactionPageState extends State<TransactionPage> {
     // 3. Kosongkan keranjang dan muat ulang produk
     context.read<CartBloc>().add(ClearCart());
     context.read<ProductBloc>().add(LoadProducts());
-    return; // Explicitly return Future<void>
+    return;
   }
 
   @override
@@ -151,7 +225,7 @@ class _TransactionPageState extends State<TransactionPage> {
               context: context,
               barrierDismissible: false,
               builder: (dialogContext) {
-                _loadingDialogContext = dialogContext; // Capture the dialog context
+                _loadingDialogContext = dialogContext;
                 return const Center(child: CircularProgressIndicator());
               },
             );
@@ -166,8 +240,8 @@ class _TransactionPageState extends State<TransactionPage> {
             debugPrint('TransactionFailure state received: ${state.error}');
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (_loadingDialogContext != null && _loadingDialogContext!.mounted) {
-                Navigator.pop(_loadingDialogContext!); // Close loading dialog using captured context
-                _loadingDialogContext = null; // Clear the context
+                Navigator.pop(_loadingDialogContext!);
+                _loadingDialogContext = null;
               }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Transaksi Gagal: ${state.error}'), backgroundColor: Colors.red),
@@ -181,12 +255,17 @@ class _TransactionPageState extends State<TransactionPage> {
               backgroundColor: Colors.white,
               elevation: 1,
               shadowColor: Colors.black.withAlpha(26),
-
               actions: [
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
+                      IconButton(
+                        icon: const Icon(Icons.info_outline, color: Colors.black),
+                        tooltip: 'Tentang Aplikasi',
+                        onPressed: _showAboutDialog,
+                      ),
+                      const SizedBox(width: 8),
                       // Repositioned PrinterStatusWidget
                       const PrinterStatusWidget(),
                       const SizedBox(width: 8), // Spacing between printer status and logout
@@ -782,31 +861,51 @@ class CartItemTile extends StatelessWidget {
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, size: 24, color: Colors.redAccent),
-                  onPressed: () {
-                    context.read<CartBloc>().add(DecrementItemQuantity(item));
-                  },
-                ),
-                Text(
-                  '${item.quantity}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, size: 24, color: Colors.green),
-                  onPressed: () {
-                    context.read<CartBloc>().add(IncrementItemQuantity(item));
-                  },
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(item.subtotal),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible( // Quantity controls and text are flexible
+                    flex: 1, // Give it some flexibility
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // Be compact within its flexible space
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, size: 24, color: Colors.redAccent),
+                          onPressed: () {
+                            context.read<CartBloc>().add(DecrementItemQuantity(item));
+                          },
+                        ),
+                        Expanded( // Quantity text can expand within this flexible block
+                          child: Text(
+                            '${item.quantity}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, size: 24, color: Colors.green),
+                          onPressed: () {
+                            context.read<CartBloc>().add(IncrementItemQuantity(item));
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8), // Spacer
+                  Expanded( // Subtotal takes remaining space
+                    flex: 2, // Give more flex to subtotal as it can be wider
+                    child: Text(
+                      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(item.subtotal),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

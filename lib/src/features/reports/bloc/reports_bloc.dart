@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:flutter/foundation.dart';
+import 'package:kasir_app/src/features/reports/reports_page.dart'; // Import ReportType
 
 part 'reports_event.dart';
 part 'reports_state.dart';
@@ -32,19 +33,33 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     
           // --- Logika untuk memproses data grafik ---
           final Map<String, double> dailyRevenue = {};
-          final DateFormat formatter = (event.endTime.difference(event.startTime).inDays < 8)
-              ? DateFormat('E') // Format hari (Sen, Sel, ...)
-              : DateFormat('dd/MM'); // Format tanggal (23/08)
+          final Map<String, int> dailyTransactionCount = {};
+          DateFormat formatter = DateFormat('dd/MM'); // Initialize with a default
+          switch (event.reportType) {
+            case ReportType.daily:
+              formatter = DateFormat('HH:mm'); // Hour and minute for daily report
+              break;
+            case ReportType.weekly:
+              formatter = DateFormat('E, dd/MM'); // Day of week, date/month for weekly
+              break;
+            case ReportType.monthly:
+              formatter = DateFormat('dd/MM'); // Date/month for monthly
+              break;
+          }
     
           for (var tx in transactions) {
             final day = formatter.format(tx.createdAt);
             dailyRevenue[day] = (dailyRevenue[day] ?? 0) + tx.totalAmount;
+            dailyTransactionCount[day] = (dailyTransactionCount[day] ?? 0) + 1;
           }
     
           final chartData = dailyRevenue.entries
-              .map((entry) => ChartData(label: entry.key, value: entry.value))
+              .map((entry) => ChartData(
+                  label: entry.key,
+                  value: entry.value,
+                  numberOfTransactions: dailyTransactionCount[entry.key] ?? 0))
               .toList()
-              .reversed // Balik urutan agar hari terlama di kiri
+              .reversed
               .toList();
           // -- Selesai --
     
@@ -76,7 +91,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
             }
           }
           final bestSellingProducts = productSalesMap.values.toList()
-            ..sort((a, b) => b.totalQuantitySold.compareTo(a.totalQuantitySold)); // Urutkan berdasarkan jumlah terjual
+            ..sort((a, b) => b.totalQuantitySold.compareTo(a.totalQuantitySold));
           // -- Selesai --
     
           emit(ReportsLoaded(
@@ -86,6 +101,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
             grossProfit: grossProfit,
             chartData: chartData,
             bestSellingProducts: bestSellingProducts,
+            reportType: event.reportType, // New: Pass reportType
           ));
           debugPrint('ReportsBloc: Emitted ReportsLoaded with ${transactions.length} transactions.');
         } catch (e) {
@@ -98,7 +114,7 @@ class ReportsBloc extends Bloc<ReportsEvent, ReportsState> {
     try {
       await _transactionRepository.deleteAllTransactions();
       // After deletion, reload the reports to show an empty list or updated data
-      add(LoadReports(startTime: DateTime.now().subtract(const Duration(days: 30)), endTime: DateTime.now())); // Reload for a month
+      add(LoadReports(startTime: DateTime.now().subtract(const Duration(days: 30)), endTime: DateTime.now(), reportType: ReportType.monthly)); // Reload for a month, pass default reportType
     } catch (e) {
       emit(ReportsError(e.toString()));
     }

@@ -42,12 +42,31 @@ class UserRepository {
 
   Future<void> deleteUser(String id) async {
     final db = await _databaseService.database;
-    // Cegah admin menghapus diri sendiri
-    // Logika ini sebaiknya ada di BLoC, tapi sebagai pengaman tambahan di sini tidak apa-apa
     await db.delete(
       'users',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<void> updateUser(UserModel user, {String? newPassword}) async {
+    final db = await _databaseService.database;
+    String hashedPassword = user.hashedPassword; // Start with the existing hashed password
+
+    // If a new password is provided, hash it
+    if (newPassword != null && newPassword.isNotEmpty) {
+      hashedPassword = sha256.convert(utf8.encode(newPassword)).toString();
+    }
+    
+    final updatedUserMap = user.toMap();
+    updatedUserMap['hashedPassword'] = hashedPassword; // Ensure hashed password is used
+
+    await db.update(
+      'users',
+      updatedUserMap,
+      where: 'id = ?',
+      whereArgs: [user.id],
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 

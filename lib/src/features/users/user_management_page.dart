@@ -6,6 +6,8 @@ import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/data/models/user_model.dart';
 import 'package:kasir_app/src/data/repositories/user_repository.dart';
 import 'package:kasir_app/src/features/users/bloc/user_bloc.dart';
+import 'package:kasir_app/src/features/users/widgets/add_edit_user_dialog.dart'; // New import
+import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart'; // New import
 
 class UserManagementPage extends StatelessWidget {
   const UserManagementPage({super.key});
@@ -28,6 +30,9 @@ class UserManagementPage extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(state.error), backgroundColor: Colors.red),
               );
+            } else if (state is UsersLoaded) {
+              // Ensure that if a user was updated/deleted, the snackbar is shown if needed.
+              // For simplicity, we just reload the users after any operation in BLoC.
             }
           },
           builder: (context, state) {
@@ -35,15 +40,48 @@ class UserManagementPage extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             if (state is UsersLoaded) {
+              final currentLoggedInUser = (context.read<AuthBloc>().state as AuthenticationAuthenticated).user;
               return ListView.separated(
                 itemCount: state.users.length,
                 separatorBuilder: (context, index) => const Divider(),
                 itemBuilder: (context, index) {
                   final user = state.users[index];
+                  final bool isAdmin = currentLoggedInUser.role == UserRole.admin;
+                  final bool isCurrentUser = currentLoggedInUser.id == user.id;
+
                   return ListTile(
                     leading: Icon(user.role == UserRole.admin ? Icons.admin_panel_settings : Icons.person_outline),
                     title: Text(user.username),
                     subtitle: Text(user.role.name),
+                    trailing: isAdmin
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (dialogContext) {
+                                      return AddEditUserDialog(
+                                        user: user,
+                                        onSave: (updatedUser, newPassword) {
+                                          context.read<UserBloc>().add(UpdateUser(updatedUser, password: newPassword));
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete, color: isCurrentUser ? Colors.grey : Colors.redAccent),
+                                onPressed: isCurrentUser // Prevent admin from deleting themselves
+                                    ? null
+                                    : () => _showDeleteConfirmation(context, user.id, user.username),
+                              ),
+                            ],
+                          )
+                        : null,
                   );
                 },
               );
@@ -51,89 +89,62 @@ class UserManagementPage extends StatelessWidget {
             return const Center(child: Text('Memuat data pengguna...'));
           },
         ),
-        floatingActionButton: Builder(builder: (context) {
-          return FloatingActionButton(
-            onPressed: () => _showAddUserDialog(context),
-            child: const Icon(Icons.add),
-          );
-        }),
+        floatingActionButton: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            final bool isAdmin = authState is AuthenticationAuthenticated && authState.user.role == UserRole.admin;
+            if (isAdmin) {
+              return FloatingActionButton(
+                heroTag: 'addUserFab',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) {
+                      return AddEditUserDialog(
+                        onSave: (newUser, newPassword) {
+                          context.read<UserBloc>().add(AddUser(
+                                username: newUser.username,
+                                password: newPassword ?? '', // AddUser expects a non-null password
+                                role: newUser.role,
+                              ));
+                        },
+                      );
+                    },
+                  );
+                },
+                child: const Icon(Icons.add),
+              );
+            }
+            return const SizedBox.shrink(); // Hide FAB if not admin
+          },
+        ),
       ),
     );
   }
 
-  void _showAddUserDialog(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    final usernameController = TextEditingController();
-    final passwordController = TextEditingController();
-    UserRole selectedRole = UserRole.employee;
-
+  void _showDeleteConfirmation(BuildContext context, String userId, String username) {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Tambah Pengguna Baru'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: usernameController,
-                    decoration: const InputDecoration(labelText: 'Username'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Username tidak boleh kosong';
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: passwordController,
-                    decoration: const InputDecoration(labelText: 'Password'),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) return 'Password tidak boleh kosong';
-                      if (value.length < 4) return 'Password minimal 4 karakter';
-                      return null;
-                    },
-                  ),
-                  StatefulBuilder(builder: (context, setState) {
-                    return DropdownButtonFormField<UserRole>(
-                      initialValue: selectedRole,
-                      decoration: const InputDecoration(labelText: 'Peran'),
-                      items: UserRole.values.map((UserRole role) {
-                        return DropdownMenuItem<UserRole>(
-                          value: role,
-                          child: Text(role.name),
-                        );
-                      }).toList(),
-                      onChanged: (UserRole? newValue) {
-                        setState(() {
-                          selectedRole = newValue!;
-                        });
-                      },
-                    );
-                  }),
-                ],
-              ),
-            ),
-          ),
-          actions: [
+          title: const Text('Hapus Pengguna'),
+          content: Text('Apakah Anda yakin ingin menghapus pengguna $username?'),
+          actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Batal'),
-            ),
-            ElevatedButton(
               onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  context.read<UserBloc>().add(AddUser(
-                        username: usernameController.text,
-                        password: passwordController.text,
-                        role: selectedRole,
-                      ));
-                  Navigator.pop(dialogContext);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
                 }
               },
-              child: const Text('Simpan'),
+            ),
+            TextButton(
+              child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                context.read<UserBloc>().add(DeleteUser(userId));
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+              },
             ),
           ],
         );

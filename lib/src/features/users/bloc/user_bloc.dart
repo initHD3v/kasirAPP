@@ -13,6 +13,8 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   UserBloc(this._userRepository) : super(UsersInitial()) {
     on<LoadUsers>(_onLoadUsers);
     on<AddUser>(_onAddUser);
+    on<UpdateUser>(_onUpdateUser);
+    on<DeleteUser>(_onDeleteUser);
   }
 
   void _onLoadUsers(LoadUsers event, Emitter<UserState> emit) async {
@@ -34,6 +36,26 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       // agar bisa ditampilkan di UI
       emit(UserOperationFailure(e.toString()));
       // Kemudian load ulang list user agar UI kembali ke state normal
+      add(LoadUsers());
+    }
+  }
+
+  void _onUpdateUser(UpdateUser event, Emitter<UserState> emit) async {
+    try {
+      await _userRepository.updateUser(event.user, newPassword: event.password);
+      add(LoadUsers());
+    } catch (e) {
+      emit(UserOperationFailure(e.toString()));
+      add(LoadUsers());
+    }
+  }
+
+  void _onDeleteUser(DeleteUser event, Emitter<UserState> emit) async {
+    try {
+      await _userRepository.deleteUser(event.userId);
+      add(LoadUsers());
+    } catch (e) {
+      emit(UserOperationFailure(e.toString()));
       add(LoadUsers());
     }
   }

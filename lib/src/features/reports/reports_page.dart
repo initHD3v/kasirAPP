@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:kasir_app/src/features/reports/bloc/reports_bloc.dart';
-import 'package:kasir_app/src/features/reports/widgets/report_bar_chart.dart';
+import 'package:shimmer/shimmer.dart'; // Import shimmer package
+import 'package:kasir_app/src/features/reports/widgets/report_line_chart.dart'; // Updated import
 
 
 
@@ -88,57 +89,58 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ],
             ),
-            body: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Filter Chips
-                  Center( // Center the segmented button
-                    child: SegmentedButton<ReportType>(
-                      segments: const [
-                        ButtonSegment(value: ReportType.daily, label: Text('Harian')),
-                        ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
-                        ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
-                      ],
-                      selected: {_selectedReportType},
-                      onSelectionChanged: (newSelection) {
-                        setState(() {
-                          _selectedReportType = newSelection.first;
-                        });
-                        // Trigger report load when selection changes
-                        final now = DateTime.now();
-                        DateTime startTime;
-                        final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
+            body: SingleChildScrollView( // Move SingleChildScrollView here
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Filter Chips
+                    Center( // Center the segmented button
+                      child: SegmentedButton<ReportType>(
+                        segments: const [
+                          ButtonSegment(value: ReportType.daily, label: Text('Harian')),
+                          ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
+                          ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
+                        ],
+                        selected: {_selectedReportType},
+                        onSelectionChanged: (newSelection) {
+                          setState(() {
+                            _selectedReportType = newSelection.first;
+                          });
+                          // Trigger report load when selection changes
+                          final now = DateTime.now();
+                          DateTime startTime;
+                          final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-                        switch (_selectedReportType) {
-                          case ReportType.daily:
-                            startTime = DateTime(now.year, now.month, now.day);
-                            break;
-                          case ReportType.weekly:
-                            startTime = now.subtract(const Duration(days: 6));
-                            break;
-                          case ReportType.monthly:
-                            startTime = DateTime(now.year, now.month, 1);
-                            break;
-                        }
-                        _reportsBloc.add(LoadReports(startTime: startTime, endTime: endTime)); // Use the initialized bloc
-                      },
-                      style: SegmentedButton.styleFrom(
-                        foregroundColor: Colors.indigo,
-                        selectedForegroundColor: Colors.white,
-                        selectedBackgroundColor: Colors.indigo,
-                        side: const BorderSide(color: Colors.indigo),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          switch (_selectedReportType) {
+                            case ReportType.daily:
+                              startTime = DateTime(now.year, now.month, now.day);
+                              break;
+                            case ReportType.weekly:
+                              startTime = now.subtract(const Duration(days: 6));
+                              break;
+                            case ReportType.monthly:
+                              startTime = DateTime(now.year, now.month, 1);
+                              break;
+                          }
+                          _reportsBloc.add(LoadReports(startTime: startTime, endTime: endTime, reportType: _selectedReportType)); // Use the initialized bloc and pass reportType
+                        },
+                        style: SegmentedButton.styleFrom(
+                          foregroundColor: Colors.indigo,
+                          selectedForegroundColor: Colors.white,
+                          selectedBackgroundColor: Colors.indigo,
+                          side: const BorderSide(color: Colors.indigo),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Summary Cards and List
-                  Expanded(
-                    child: ReportContent(reportType: _selectedReportType),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    // Summary Cards and List
+                    // No need for Expanded here anymore
+                    ReportContent(reportType: _selectedReportType),
+                  ],
+                ),
               ),
             ),
           );
@@ -188,7 +190,7 @@ class _ReportContentState extends State<ReportContent> {
         startTime = DateTime(now.year, now.month, 1);
         break;
     }
-    context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime));
+    context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime, reportType: widget.reportType));
   }
 
   @override
@@ -196,7 +198,63 @@ class _ReportContentState extends State<ReportContent> {
     return BlocBuilder<ReportsBloc, ReportsState>(
       builder: (context, state) {
         if (state is ReportsLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Placeholder for best selling products
+                Container(
+                  height: 20,
+                  width: double.infinity,
+                  color: Colors.white,
+                  margin: const EdgeInsets.only(bottom: 16),
+                ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 3, // Show a few placeholder items
+                  itemBuilder: (context, index) => Container(
+                    height: 60,
+                    color: Colors.white,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                  ),
+                ),
+              ],
+            ),
+          );
         }
         if (state is ReportsError) {
           return Center(child: Text('Error: ${state.message}'));
@@ -237,7 +295,7 @@ class _ReportContentState extends State<ReportContent> {
                     children: [
                       SizedBox(
                         height: 200,
-                        child: ReportBarChart(chartData: state.chartData),
+                        child: ReportLineChart(chartData: state.chartData, reportType: widget.reportType), // Updated widget name and added reportType
                       ),
                     ],
                   ),
@@ -249,7 +307,22 @@ class _ReportContentState extends State<ReportContent> {
                 ),
                 const Divider(height: 20, thickness: 1),
                 if (state.bestSellingProducts.isEmpty)
-                  const Center(child: Text('Tidak ada produk terlaris pada periode ini.'))
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shopping_basket_outlined, size: 40, color: Colors.grey),
+                          SizedBox(height: 10),
+                          Text(
+                            'Belum ada produk terlaris.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   ListView.builder(
                     shrinkWrap: true,
@@ -278,7 +351,22 @@ class _ReportContentState extends State<ReportContent> {
                 const Divider(height: 20, thickness: 1),
                 // Transaction List
                 if (state.transactions.isEmpty)
-                  const Center(child: Text('Tidak ada transaksi pada periode ini.'))
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_long, size: 40, color: Colors.grey),
+                          SizedBox(height: 10),
+                          Text(
+                            'Belum ada detail transaksi.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   ListView.builder(
                     shrinkWrap: true, // Crucial for embedding in SingleChildScrollView
@@ -339,9 +427,11 @@ class SummaryCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(color: Colors.grey[700], fontSize: 16), // Slightly darker grey, larger font
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16), // Slightly darker grey, larger font
+                  ),
                 ),
                 Icon(icon, color: color, size: 28), // Larger icon
               ],

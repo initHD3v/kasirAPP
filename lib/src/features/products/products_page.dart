@@ -179,6 +179,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   });
                 },
                 child: FloatingActionButton(
+                  heroTag: 'addProductFab', // Add this line
                   onPressed: () => showDialog(
                     context: context,
                     builder: (dialogContext) {

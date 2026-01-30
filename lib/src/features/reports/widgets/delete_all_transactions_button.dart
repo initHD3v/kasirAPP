@@ -13,6 +13,7 @@ class DeleteAllTransactionsButton extends StatelessWidget {
       builder: (context, state) {
         if (state is AuthenticationAuthenticated && state.user.role == UserRole.admin) {
           return FloatingActionButton.extended(
+            heroTag: 'deleteAllTransactionsFab', // Add this line
             onPressed: () => _showDeleteAllTransactionsConfirmation(context),
             label: const Text('Hapus Semua Transaksi'),
             icon: const Icon(Icons.delete_forever),
