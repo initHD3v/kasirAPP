@@ -4,26 +4,25 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
-import 'package:kasir_app/src/features/reports/bloc/reports_bloc.dart';
-import 'package:shimmer/shimmer.dart'; // Import shimmer package
-import 'package:kasir_app/src/features/reports/widgets/report_line_chart.dart'; // Updated import
-
+import 'package:kasir_app/src/features/dashboard/bloc/reports_bloc.dart'; // Updated import
+import 'package:shimmer/shimmer.dart';
+import 'package:kasir_app/src/features/dashboard/widgets/report_table_summary.dart'; // Updated import
 
 
 enum ReportType { daily, weekly, monthly }
 
-class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key});
+class ReportsView extends StatefulWidget {
+  const ReportsView({super.key});
 
   @override
-  State<ReportsPage> createState() => _ReportsPageState();
+  State<ReportsView> createState() => _ReportsViewState();
 }
 
-class _ReportsPageState extends State<ReportsPage> {
+class _ReportsViewState extends State<ReportsView> {
   ReportType _selectedReportType = ReportType.daily;
-  late ReportsBloc _reportsBloc;
 
-  void _showDeleteAllConfirmation(BuildContext context, ReportsBloc bloc) {
+  void _showDeleteAllConfirmation(BuildContext context) {
+    final bloc = context.read<ReportsBloc>();
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -56,95 +55,64 @@ class _ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ReportsBloc(getIt<TransactionRepository>()),
-      child: Builder( // Use a Builder to get a context that has the ReportsBloc
-        builder: (context) {
-          _reportsBloc = context.read<ReportsBloc>(); // Initialize it here
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                  SegmentedButton<ReportType>(
+                    segments: const [
+                      ButtonSegment(value: ReportType.daily, label: Text('Harian')),
+                      ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
+                      ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
+                    ],
+                    selected: {_selectedReportType},
+                    onSelectionChanged: (newSelection) {
+                      setState(() {
+                        _selectedReportType = newSelection.first;
+                      });
+                      final now = DateTime.now();
+                      DateTime startTime;
+                      final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text(
-                'Laporan Penjualan',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              backgroundColor: Colors.white,
-              elevation: 0, // Remove shadow for a flatter look
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                onPressed: () => GoRouter.of(context).go('/'),
-              ),
-              centerTitle: true, // Center the title
-              actions: [
-                BlocBuilder<ReportsBloc, ReportsState>(
-                  builder: (context, state) {
-                    return IconButton(
-                      icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                      onPressed: () {
-                        final bloc = context.read<ReportsBloc>();
-                        _showDeleteAllConfirmation(context, bloc);
-                      },
-                    );
-                  },
-                ),
+                      switch (_selectedReportType) {
+                        case ReportType.daily:
+                          startTime = DateTime(now.year, now.month, now.day);
+                          break;
+                        case ReportType.weekly:
+                          startTime = now.subtract(const Duration(days: 6));
+                          break;
+                        case ReportType.monthly:
+                          startTime = DateTime(now.year, now.month, 1);
+                          break;
+                      }
+                      context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime, reportType: _selectedReportType));
+                    },
+                    style: SegmentedButton.styleFrom(
+                      foregroundColor: Colors.indigo,
+                      selectedForegroundColor: Colors.white,
+                      selectedBackgroundColor: Colors.indigo,
+                      side: const BorderSide(color: Colors.indigo),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                    tooltip: 'Hapus Semua Transaksi',
+                    onPressed: () {
+                      _showDeleteAllConfirmation(context);
+                    },
+                  ),
               ],
             ),
-            body: SingleChildScrollView( // Move SingleChildScrollView here
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0), // Adjust padding
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Filter Chips
-                    Center( // Center the segmented button
-                      child: SegmentedButton<ReportType>(
-                        segments: const [
-                          ButtonSegment(value: ReportType.daily, label: Text('Harian')),
-                          ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
-                          ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
-                        ],
-                        selected: {_selectedReportType},
-                        onSelectionChanged: (newSelection) {
-                          setState(() {
-                            _selectedReportType = newSelection.first;
-                          });
-                          // Trigger report load when selection changes
-                          final now = DateTime.now();
-                          DateTime startTime;
-                          final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-                          switch (_selectedReportType) {
-                            case ReportType.daily:
-                              startTime = DateTime(now.year, now.month, now.day);
-                              break;
-                            case ReportType.weekly:
-                              startTime = now.subtract(const Duration(days: 6));
-                              break;
-                            case ReportType.monthly:
-                              startTime = DateTime(now.year, now.month, 1);
-                              break;
-                          }
-                          _reportsBloc.add(LoadReports(startTime: startTime, endTime: endTime, reportType: _selectedReportType)); // Use the initialized bloc and pass reportType
-                        },
-                        style: SegmentedButton.styleFrom(
-                          foregroundColor: Colors.indigo,
-                          selectedForegroundColor: Colors.white,
-                          selectedBackgroundColor: Colors.indigo,
-                          side: const BorderSide(color: Colors.indigo),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Summary Cards and List
-                    // No need for Expanded here anymore
-                    ReportContent(reportType: _selectedReportType),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+            const SizedBox(height: 24),
+            ReportContent(reportType: _selectedReportType),
+          ],
+        ),
       ),
     );
   }
@@ -261,8 +229,7 @@ class _ReportContentState extends State<ReportContent> {
         }
         if (state is ReportsLoaded) {
           debugPrint('ReportContent: Received ReportsLoaded state. Transactions count: ${state.transactions.length}');
-          return SingleChildScrollView(
-            child: Column(
+          return Column(
               children: [
                 // Summary Cards
                 Row(
@@ -295,7 +262,7 @@ class _ReportContentState extends State<ReportContent> {
                     children: [
                       SizedBox(
                         height: 200,
-                        child: ReportLineChart(chartData: state.chartData, reportType: widget.reportType), // Updated widget name and added reportType
+                        child: ReportTableSummary(chartData: state.chartData, reportType: widget.reportType),
                       ),
                     ],
                   ),
@@ -384,15 +351,14 @@ class _ReportContentState extends State<ReportContent> {
                           subtitle: Text(DateFormat('dd MMM yyyy, HH:mm').format(tx.createdAt)),
                           trailing: Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(tx.totalAmount), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
                           onTap: () {
-                            context.go('/transaction_detail', extra: tx);
+                            context.push('/transaction_detail', extra: tx);
                           },
                         ),
                       );
                     },
                   ),
               ],
-            ),
-          );
+            );
         }
         return const SizedBox.shrink();
       },

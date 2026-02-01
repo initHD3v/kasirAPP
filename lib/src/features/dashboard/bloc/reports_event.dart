@@ -1,5 +1,3 @@
-
-import 'package:kasir_app/src/features/reports/reports_page.dart'; // Import ReportType
 part of 'reports_bloc.dart';
 
 abstract class ReportsEvent extends Equatable {
@@ -12,7 +10,7 @@ abstract class ReportsEvent extends Equatable {
 class LoadReports extends ReportsEvent {
   final DateTime startTime;
   final DateTime endTime;
-  final ReportType reportType; // New: Add reportType
+  final ReportType reportType;
 
   const LoadReports({required this.startTime, required this.endTime, required this.reportType});
 
@@ -20,9 +18,4 @@ class LoadReports extends ReportsEvent {
   List<Object> get props => [startTime, endTime, reportType];
 }
 
-class DeleteAllTransactions extends ReportsEvent {
-  const DeleteAllTransactions();
-
-  @override
-  List<Object> get props => [];
-}
+class DeleteAllTransactions extends ReportsEvent {}

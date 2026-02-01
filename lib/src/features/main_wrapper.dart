@@ -49,7 +49,7 @@ class _MainWrapperState extends State<MainWrapper> {
       case 1:
         return 'Manajemen Produk';
       case 2:
-        return 'Laporan';
+        return 'Dashboard';
       case 3:
         return 'Manajemen Pengguna';
       case 4:
@@ -113,8 +113,8 @@ class _MainWrapperState extends State<MainWrapper> {
                 label: 'Produk',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart),
-                label: 'Laporan',
+                icon: Icon(Icons.dashboard),
+                label: 'Dashboard',
               ),
               const BottomNavigationBarItem(
                 icon: Icon(Icons.group),

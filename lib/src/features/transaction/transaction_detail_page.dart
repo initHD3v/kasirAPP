@@ -42,7 +42,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         title: const Text('Detail Transaksi'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/reports'),
+          onPressed: () => context.pop(),
         ),
         actions: [ // Added actions for print button
           IconButton(

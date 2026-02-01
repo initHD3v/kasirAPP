@@ -36,6 +36,7 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isPasswordVisible = false; // Added for password visibility toggle
 
   late AnimationController _cardAnimationController;
   late Animation<double> _cardScaleAnimation;
@@ -49,7 +50,7 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
   late Animation<Offset> _usernameSlideAnimation;
   late Animation<Offset> _passwordSlideAnimation;
   late Animation<Offset> _loginButtonSlideAnimation;
-  late Animation<Offset> _registerTextSlideAnimation;
+  // Removed _registerTextSlideAnimation as the widget will be removed
 
   @override
   void initState() {
@@ -57,49 +58,45 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
 
     _cardAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
     );
     _cardScaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _cardAnimationController, curve: Curves.easeOutBack),
     );
     _cardSlideAnimation = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
-      CurvedAnimation(parent: _cardAnimationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _cardAnimationController, curve: Curves.fastOutSlowIn),
     );
 
     _logoAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
     );
     _logoFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoAnimationController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _logoAnimationController, curve: Curves.easeOut),
     );
     _logoSlideAnimation = Tween<Offset>(begin: const Offset(0, -0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _logoAnimationController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _logoAnimationController, curve: Curves.fastOutSlowIn),
     );
 
     _formElementsAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 700),
     );
     _usernameSlideAnimation = Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
-      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic)),
+      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.0, 0.4, curve: Curves.fastOutSlowIn)),
     );
     _passwordSlideAnimation = Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(
-      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutCubic)),
+      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.2, 0.6, curve: Curves.fastOutSlowIn)),
     );
     _loginButtonSlideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutCubic)),
+      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.4, 0.8, curve: Curves.fastOutSlowIn)),
     );
-    _registerTextSlideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _formElementsAnimationController, curve: const Interval(0.6, 1.0, curve: Curves.easeOutCubic)),
-    );
+    // Removed _registerTextSlideAnimation as the widget will be removed
 
 
-    _cardAnimationController.forward().then((_) {
-      _logoAnimationController.forward().then((_) {
-        _formElementsAnimationController.forward();
-      });
-    });
+    _cardAnimationController.forward();
+    _logoAnimationController.forward();
+    _formElementsAnimationController.forward();
   }
 
   @override
@@ -206,11 +203,22 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
                             position: _passwordSlideAnimation,
                             child: TextFormField(
                               controller: _passwordController,
-                              obscureText: true,
+                              obscureText: !_isPasswordVisible, // Use the state variable
                               decoration: InputDecoration(
                                 labelText: 'Password',
                                 hintText: 'Masukkan password Anda',
                                 prefixIcon: const Icon(Icons.lock_outline, color: Colors.indigo),
+                                suffixIcon: IconButton( // Added suffix icon
+                                  icon: Icon(
+                                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isPasswordVisible = !_isPasswordVisible;
+                                    });
+                                  },
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -264,22 +272,7 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
                               },
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          SlideTransition(
-                            position: _registerTextSlideAnimation,
-                            child: TextButton(
-                              onPressed: () {
-                                // TODO: Implement navigation to registration page
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Halaman pendaftaran belum diimplementasikan')),
-                                );
-                              },
-                              child: Text(
-                                'Belum punya akun? Daftar Sekarang',
-                                style: TextStyle(color: Colors.indigo[700], fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
+                          // Removed the "Belum punya akun? Daftar Sekarang" TextButton
                         ],
                       ),
                     ),

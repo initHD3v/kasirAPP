@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/core/services/printing_service.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class PrinterSettingsPage extends StatefulWidget {
   const PrinterSettingsPage({super.key});
@@ -17,6 +18,44 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   PrinterInfo? _savedPrinter;
   bool _isLoading = false;
   PrinterState _currentPrinterState = const PrinterState.initial();
+
+  // Helper function to request Bluetooth permissions
+  Future<bool> _requestBluetoothPermissions() async {
+    // For Android 12 and above
+    if (await Permission.bluetoothScan.isDenied ||
+        await Permission.bluetoothConnect.isDenied) {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.bluetoothScan,
+        Permission.bluetoothConnect,
+      ].request();
+
+      if (statuses[Permission.bluetoothScan] == PermissionStatus.granted &&
+          statuses[Permission.bluetoothConnect] == PermissionStatus.granted) {
+        return true;
+      }
+    } else {
+      // Permissions already granted for Android 12+
+      return true;
+    }
+
+    // For Android 11 and below (Location permission is often needed for Bluetooth discovery)
+    if (await Permission.locationWhenInUse.isDenied) {
+      final status = await Permission.locationWhenInUse.request();
+      if (status == PermissionStatus.granted) {
+        return true; // Location granted
+      }
+    } else if (await Permission.locationWhenInUse.isGranted) {
+      return true; // Location already granted
+    }
+
+    if (!mounted) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Izin Bluetooth atau Lokasi tidak diberikan. Harap aktifkan di pengaturan aplikasi.'),
+          backgroundColor: Colors.red),
+    );
+    return false;
+  }
 
   @override
   void initState() {
@@ -48,6 +87,12 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   }
 
   void _scanForDevices() async {
+    // Request permissions before scanning
+    final granted = await _requestBluetoothPermissions();
+    if (!granted) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _devices = [];
@@ -71,6 +116,12 @@ class _PrinterSettingsPageState extends State<PrinterSettingsPage> {
   }
 
   void _selectPrinter(BluetoothInfo device) async {
+    // Request permissions before connecting
+    final granted = await _requestBluetoothPermissions();
+    if (!granted) {
+      return;
+    }
+
     final printerToSave = PrinterInfo(name: device.name ?? 'Unknown', address: device.macAdress);
     await _printingService.savePrinter(printerToSave); // Save the printer info
 

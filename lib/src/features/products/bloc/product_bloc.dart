@@ -21,7 +21,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     emit(ProductLoading());
     try {
       final products = await _productRepository.getProducts(query: event.query, category: event.category);
-      debugPrint('Products loaded: ${products.length}');
+      products.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      debugPrint('Products loaded and sorted: ${products.length}');
       emit(ProductLoaded(products));
     } catch (e) {
       debugPrint('Error loading products: $e');

@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
 import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:flutter/foundation.dart';
-import 'package:kasir_app/src/features/reports/reports_page.dart'; // Import ReportType
+import 'package:kasir_app/src/features/dashboard/views/reports_view.dart'; // Import ReportType
 
 part 'reports_event.dart';
 part 'reports_state.dart';

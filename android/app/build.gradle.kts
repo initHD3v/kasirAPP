@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -6,35 +8,62 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kasir_app"
+    namespace = "com.kasirapp.pos"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.kasir_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.kasirapp.pos"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            val keyProperties = Properties()
+            val keyPropertiesFile = rootProject.file("android/key.properties")
+
+            if (keyPropertiesFile.exists()) {
+                keyPropertiesFile.inputStream().use { keyProperties.load(it) }
+
+                // Check if all necessary properties are set and not placeholders
+                val storeFileValue = keyProperties.getProperty("storeFile")
+                val storePasswordValue = keyProperties.getProperty("storePassword")
+                val keyAliasValue = keyProperties.getProperty("keyAlias")
+                val keyPasswordValue = keyProperties.getProperty("keyPassword")
+
+                if (!storeFileValue.isNullOrEmpty() && storeFileValue != "<YOUR_UPLOAD_KEYSTORE_FILE_NAME>" &&
+                    !storePasswordValue.isNullOrEmpty() && storePasswordValue != "<YOUR_STORE_PASSWORD>" &&
+                    !keyAliasValue.isNullOrEmpty() && keyAliasValue != "<YOUR_KEY_ALIAS>" &&
+                    !keyPasswordValue.isNullOrEmpty() && keyPasswordValue != "<YOUR_KEY_PASSWORD>") {
+                    
+                    storeFile = file(storeFileValue)
+                    storePassword = storePasswordValue
+                    keyAlias = keyAliasValue
+                    keyPassword = keyPasswordValue
+                } else {
+                    println("Warning: android/key.properties exists but is incomplete or contains placeholder values. Release signing config will not be fully applied. This may affect release builds.")
+                }
+            } else {
+                println("Warning: android/key.properties not found. Release signing config will not be applied. This may affect release builds.")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

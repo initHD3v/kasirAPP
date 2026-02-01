@@ -6,7 +6,7 @@ import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 import 'package:kasir_app/src/features/auth/login_page.dart';
 import 'package:kasir_app/src/features/auth/splash_page.dart';
 import 'package:kasir_app/src/features/products/products_page.dart';
-import 'package:kasir_app/src/features/reports/reports_page.dart';
+import 'package:kasir_app/src/features/dashboard/dashboard_page.dart';
 import 'package:kasir_app/src/features/settings/printer_settings_page.dart';
 import 'package:kasir_app/src/features/settings/data_settings_page.dart'; // New import
 import 'package:kasir_app/src/features/settings/settings_page.dart'; // New import
@@ -71,13 +71,13 @@ class AppRouter {
               ),
             ],
           ),
-          // Laporan (ReportsPage)
+          // Dashboard (DashboardPage)
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/reports',
-                name: 'reports',
-                builder: (context, state) => const ReportsPage(),
+                path: '/dashboard',
+                name: 'dashboard',
+                builder: (context, state) => const DashboardPage(),
               ),
             ],
           ),
@@ -142,7 +142,7 @@ class AppRouter {
 
       // Admin access rules (keep as is)
       final userRole = isAuth ? authState.user.role : null;
-      final adminRoutes = ['/products', '/reports', '/users', '/settings/printer'];
+      final adminRoutes = ['/products', '/dashboard', '/users', '/settings/printer'];
       if (isAuth && userRole == UserRole.employee && adminRoutes.contains(location)) {
         debugPrint('  Redirecting to / (Employee trying to access admin route)');
         return '/';

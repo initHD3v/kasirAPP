@@ -108,6 +108,12 @@ class _TransactionPageState extends State<TransactionPage> {
                   style: TextStyle(fontSize: 14),
                   textAlign: TextAlign.justify,
                 ),
+                const SizedBox(height: 10), // Added spacing
+                const Text( // New line for updates
+                  'Pembaruan Terbaru: Fitur Dashboard profesional dan perbaikan UI telah diimplementasikan untuk pengalaman pengguna yang lebih baik.',
+                  style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.justify,
+                ),
                 const SizedBox(height: 15),
                 Text(
                   'Versi Aplikasi: ${_packageInfo.version} (${_packageInfo.buildNumber})',
@@ -475,7 +481,7 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
                             return GridView.builder(
                               padding: const EdgeInsets.all(8.0),
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
+                                crossAxisCount: 5,
                                 crossAxisSpacing: 8.0,
                                 mainAxisSpacing: 8.0,
                                 childAspectRatio: 0.7,
@@ -865,15 +871,18 @@ class CartItemTile extends StatelessWidget {
               child: Row(
                 children: [
                   Flexible( // Quantity controls and text are flexible
-                    flex: 1, // Give it some flexibility
+                    flex: 2, // Give it some flexibility
                     child: Row(
-                      mainAxisSize: MainAxisSize.min, // Be compact within its flexible space
+                      // Removed mainAxisSize.min to allow children to expand within Flexible
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, size: 24, color: Colors.redAccent),
-                          onPressed: () {
+                        InkWell(
+                          onTap: () {
                             context.read<CartBloc>().add(DecrementItemQuantity(item));
                           },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Icon(Icons.remove_circle_outline, size: 24, color: Colors.redAccent),
+                          ),
                         ),
                         Expanded( // Quantity text can expand within this flexible block
                           child: Text(
@@ -884,18 +893,21 @@ class CartItemTile extends StatelessWidget {
                             maxLines: 1,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline, size: 24, color: Colors.green),
-                          onPressed: () {
+                        InkWell(
+                          onTap: () {
                             context.read<CartBloc>().add(IncrementItemQuantity(item));
                           },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Icon(Icons.add_circle_outline, size: 24, color: Colors.green),
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8), // Spacer
                   Expanded( // Subtotal takes remaining space
-                    flex: 2, // Give more flex to subtotal as it can be wider
+                    flex: 1, // Give more flex to subtotal as it can be wider
                     child: Text(
                       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0).format(item.subtotal),
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
