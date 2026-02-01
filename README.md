@@ -16,14 +16,15 @@ KasirApp dilengkapi dengan serangkaian fitur canggih yang dirancang untuk menduk
     *   Sistem CRUD (Create, Read, Update, Delete) yang lengkap untuk produk.
     *   Dukungan pengelolaan stok dan harga jual/modal.
     *   Kemampuan menyertakan gambar produk untuk identifikasi visual yang mudah.
+    *   **Penyempurnaan Tampilan Kasir:** Daftar produk di halaman kasir kini diurutkan secara alfabetis dan tampilan kartu produk diperkecil untuk visibilitas lebih banyak produk.
 *   **Proses Transaksi Cepat & Akurat:**
     *   Antarmuka kasir interaktif dengan keranjang belanja dinamis.
     *   Perhitungan total otomatis, pengelolaan pembayaran, dan kalkulasi kembalian.
     *   **Pencetakan Struk Canggih:** Desain struk yang profesional dan informatif (Nama Toko, Alamat, ID Transaksi unik, detail pembayaran, kembalian). Mendukung pencetakan ulang struk dari riwayat transaksi.
-*   **Analisis Laporan Penjualan Mendalam:**
-    *   Generasi laporan penjualan harian, mingguan, dan bulanan.
+*   **Dashboard Profesional & Analisis Laporan Penjualan Mendalam:**
+    *   Integrasi Dashboard baru yang profesional dengan tampilan `Overview` (ringkasan KPI utama, grafik penjualan mingguan interaktif, produk terlaris) dan `Laporan` (fungsionalitas laporan sebelumnya).
+    *   Visualisasi data interaktif menggunakan grafik (`fl_chart`) untuk analisis tren yang lebih baik dan laporan penjualan harian, mingguan, serta bulanan.
     *   Ringkasan pendapatan, jumlah transaksi, dan identifikasi produk terlaris.
-    *   Visualisasi data interaktif menggunakan grafik (line charts) untuk analisis tren yang lebih baik.
 *   **Manajemen Pengguna Fleksibel:**
     *   Sistem manajemen peran berbasis akses (Admin/Kasir) untuk kontrol operasional yang aman.
     *   **Login Admin Default:** Untuk kemudahan setup awal pada instalasi baru, aplikasi menyediakan kredensial admin default (`username: admin`, `password: admin`).
@@ -33,9 +34,11 @@ KasirApp dilengkapi dengan serangkaian fitur canggih yang dirancang untuk menduk
 *   **Integrasi Printer Thermal:**
     *   Konfigurasi mudah dengan printer thermal Bluetooth untuk pencetakan struk instan.
     *   **Otomatisasi Koneksi:** Aplikasi secara otomatis mendeteksi dan terhubung ke printer yang tersimpan saat startup, dengan notifikasi status koneksi yang jelas.
+    *   **Permintaan Izin:** Menambahkan permintaan izin Bluetooth dan Lokasi yang diperlukan untuk fungsionalitas printer.
 *   **Pengalaman Pengguna Superior:**
     *   **Antarmuka Pengguna Modern & Responsif (UI/UX):** Desain yang intuitif, estetis, dan adaptif, memastikan konsistensi dan kemudahan penggunaan di berbagai ukuran layar dan orientasi perangkat.
-    *   **Autentikasi Aman:** Implementasi sistem login yang menjaga keamanan data pengguna.
+    *   **Autentikasi Aman:** Implementasi sistem login yang menjaga keamanan data pengguna, termasuk fitur toggle visibilitas password.
+    *   **Animasi Login yang Lebih Halus:** Peningkatan fluiditas dan responsivitas animasi halaman login.
 
 ## Tumpukan Teknologi (Tech Stack)
 
