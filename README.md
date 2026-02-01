@@ -54,41 +54,6 @@ Proyek ini dibangun di atas tumpukan teknologi modern yang memastikan performa t
 *   **Pengolahan Data & Media:** `intl`, `uuid`, `crypto`, `image_picker`, `flutter_image_compress`, `esc_pos_utils_plus`, `image` (untuk lokalisasi, generasi ID, keamanan data, pemilihan/kompresi gambar, dan formatting cetak).
 *   **Integrasi Hardware:** `print_bluetooth_thermal` (untuk konektivitas printer thermal).
 
-## Panduan Instalasi & Penggunaan (Developer)
-
-Untuk menjalankan dan mengembangkan KasirApp di lingkungan lokal Anda:
-
-1.  **Persyaratan:** Pastikan Anda memiliki Flutter SDK terinstal (versi 3.8.1 atau lebih baru direkomendasikan).
-
-2.  **Kloning Repositori:**
-    ```bash
-    git clone https://github.com/initialh/kasir_app.git
-    cd kasir_app
-    ```
-
-3.  **Instal Dependensi:**
-    ```bash
-    flutter pub get
-    ```
-
-4.  **Menjalankan Aplikasi:**
-    *   **Mode Debug:** Untuk pengembangan dan pengujian cepat.
-        ```bash
-        flutter run -d <target_device_id>
-        # Contoh: flutter run -d macos
-        # Contoh: flutter run -d 21051182G (ID perangkat Android fisik)
-        ```
-    *   **Membangun Rilis Produksi:** Untuk distribusi aplikasi.
-        ```bash
-        flutter build apk --release       # Android APK
-        flutter build ios                 # iOS App Bundle
-        flutter build macos               # macOS Desktop App
-        # ... dan platform lainnya
-        ```
-
-5.  **Catatan Penting untuk Android (Izin Penyimpanan):**
-    *   Untuk fungsionalitas Backup/Restore di Android 11 (API 30) ke atas, aplikasi memerlukan izin "Akses semua file" (`MANAGE_EXTERNAL_STORAGE`). Anda mungkin perlu memberikan izin ini secara manual melalui pengaturan aplikasi (`Pengaturan > Aplikasi > [Nama Aplikasi] > Izin > File dan media`).
-    *   Untuk Android 10 (API 29) ke bawah, izin penyimpanan standar akan diminta secara otomatis oleh aplikasi.
 
 ### Penggunaan Fitur Utama
 
