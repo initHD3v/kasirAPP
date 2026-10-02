@@ -113,7 +113,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 ),
                 const SizedBox(height: 10), // Added spacing
                 const Text( // New line for updates
-                  'Pembaruan Terbaru: Fitur Dashboard profesional dan perbaikan UI telah diimplementasikan untuk pengalaman pengguna yang lebih baik.',
+                  'Pembaruan Terbaru (v1.1.0): Pembayaran QRIS manual (Dana/GoPay), 30 produk bawaan, UI portrait HP baru, dan perbaikan stabilitas.',
                   style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
                   textAlign: TextAlign.justify,
                 ),
