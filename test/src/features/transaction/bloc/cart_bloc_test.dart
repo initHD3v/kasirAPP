@@ -131,10 +131,18 @@ void main() {
       'emits state with reordered items when ReorderCartItems is added (moving item down)',
       build: () => cartBloc,
       seed: () => CartState(items: [dummyCartItem2, dummyCartItem1], subtotal: 30.0, total: 30.0),
-      act: (bloc) => bloc.add(const ReorderCartItems(0, 1)), // Move dummyCartItem2 (index 0) to index 1
+      act: (bloc) => bloc.add(const ReorderCartItems(0, 2)), // Move item at index 0 to end
       expect: () => [
         CartState(items: [dummyCartItem1, dummyCartItem2], subtotal: 30.0, total: 30.0),
       ],
+    );
+
+    blocTest<CartBloc, CartState>(
+      'does not change order when ReorderCartItems (0, 1) is a no-op under ReorderableListView semantics',
+      build: () => cartBloc,
+      seed: () => CartState(items: [dummyCartItem2, dummyCartItem1], subtotal: 30.0, total: 30.0),
+      act: (bloc) => bloc.add(const ReorderCartItems(0, 1)),
+      expect: () => [],
     );
   });
 }

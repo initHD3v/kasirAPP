@@ -26,6 +26,13 @@ class SettingsPage extends StatelessWidget {
               context.go('/settings/data');
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.qr_code),
+            title: const Text('Pengaturan QRIS'),
+            onTap: () {
+              context.go('/settings/qris');
+            },
+          ),
           // Add other settings options here in the future
         ],
       ),

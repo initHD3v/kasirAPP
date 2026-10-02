@@ -290,7 +290,7 @@ class _LoginFormState extends State<LoginForm> with TickerProviderStateMixin {
     if (_formKey.currentState!.validate()) {
       context.read<LoginBloc>().add(
             LoginButtonPressed(
-              username: _usernameController.text,
+              username: _usernameController.text.trim(),
               password: _passwordController.text,
             ),
           );

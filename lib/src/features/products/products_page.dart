@@ -259,7 +259,8 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  
+  final _stockController = TextEditingController();
+
   File? _pickedImageFile; // Use File for picked image
   String? _existingImageUrl; // To store existing image URL from product
   final ImagePicker _picker = ImagePicker();
@@ -275,10 +276,12 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
     if (isEditing) {
       _nameController.text = widget.product!.name;
       _priceController.text = widget.product!.price.toString();
+      _stockController.text = widget.product!.stock.toString();
       _existingImageUrl = widget.product!.imageUrl; // Store existing image URL
       _selectedCategory = widget.product!.category; // Set selected category from existing product
     } else {
       _selectedCategory = _defaultCategories.first; // Default to first category for new products
+      _stockController.text = '0';
     }
   }
 
@@ -343,6 +346,17 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 keyboardType: TextInputType.number,
                 validator: (value) => value!.isEmpty ? 'Harga jual tidak boleh kosong' : null,
               ),
+              TextFormField(
+                controller: _stockController,
+                decoration: const InputDecoration(labelText: 'Stok'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Stok tidak boleh kosong';
+                  final parsed = int.tryParse(value);
+                  if (parsed == null || parsed < 0) return 'Stok harus angka >= 0';
+                  return null;
+                },
+              ),
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
                 decoration: const InputDecoration(labelText: 'Kategori Produk'),
@@ -387,9 +401,10 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
 
               final newProduct = Product(
                 id: isEditing ? widget.product!.id : const Uuid().v4(),
-                name: _nameController.text,
+                name: _nameController.text.trim(),
                 price: double.parse(_priceController.text),
                 cost: isEditing ? widget.product!.cost : 0.0, // Default to 0.0 for new products
+                stock: int.tryParse(_stockController.text) ?? 0,
                 category: _selectedCategory, // Use selected category from dropdown
                 imageUrl: imageUrlBase64,
               );

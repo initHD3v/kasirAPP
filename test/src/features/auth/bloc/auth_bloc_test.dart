@@ -30,19 +30,21 @@ void main() {
   });
 
   group('AuthBloc', () {
-    test('initial state is AuthenticationUnauthenticated', () {
-      expect(authBloc.state, equals(AuthenticationUnauthenticated()));
+    test('initial state is AuthenticationInitial', () {
+      expect(authBloc.state, equals(AuthenticationInitial()));
     });
 
     blocTest<AuthBloc, AuthState>(
       'emits [AuthenticationUnauthenticated] when AppStarted is added',
       build: () => authBloc,
+      setUp: () {
+        when(() => authRepository.initAdmin()).thenAnswer((_) async => Future.value());
+      },
       act: (bloc) => bloc.add(AppStarted()),
-      wait: const Duration(seconds: 2), // Wait for the Future.delayed in _onAppStarted
+      wait: const Duration(seconds: 3),
       expect: () => [AuthenticationUnauthenticated()],
       verify: (_) async {
-        // No interaction with repository expected for this simple AppStarted
-        verifyZeroInteractions(authRepository);
+        verify(() => authRepository.initAdmin()).called(1);
       }
     );
 

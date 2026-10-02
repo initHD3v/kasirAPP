@@ -44,10 +44,10 @@ class TransactionModel {
       items: (jsonDecode(map['items']) as List)
           .map((itemData) => CartItem.fromMap(itemData as Map<String, dynamic>))
           .toList(),
-      totalAmount: map['total_amount'] as double,
+      totalAmount: (map['total_amount'] as num).toDouble(),
       paymentMethod: map['payment_method'] as String,
-      amountPaid: map['amount_paid'] as double,
-      change: map['change'] as double,
+      amountPaid: (map['amount_paid'] as num).toDouble(),
+      change: (map['change'] as num).toDouble(),
       cashierId: map['cashier_id'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
     );

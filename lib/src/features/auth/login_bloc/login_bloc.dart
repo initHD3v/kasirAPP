@@ -21,7 +21,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     emit(LoginLoading());
     try {
-      final user = await authRepository.login(event.username, event.password);
+      final user = await authRepository.login(event.username.trim(), event.password);
 
       if (user != null) {
         authBloc.add(LoggedIn(user: user));

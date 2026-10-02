@@ -14,6 +14,7 @@ class ProcessTransaction extends TransactionEvent {
   final double amountPaid;
   final double change;
   final String cashierId;
+  final String paymentMethod;
 
   const ProcessTransaction({
     required this.cartItems,
@@ -21,8 +22,10 @@ class ProcessTransaction extends TransactionEvent {
     required this.amountPaid,
     required this.change,
     required this.cashierId,
+    this.paymentMethod = 'Tunai',
   });
 
   @override
-  List<Object> get props => [cartItems, totalAmount, amountPaid, change, cashierId];
+  List<Object> get props =>
+      [cartItems, totalAmount, amountPaid, change, cashierId, paymentMethod];
 }

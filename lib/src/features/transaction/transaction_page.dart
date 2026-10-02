@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kasir_app/src/core/service_locator.dart';
 import 'package:kasir_app/src/core/services/printing_service.dart';
+import 'package:kasir_app/src/core/services/qris_service.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:kasir_app/src/data/models/product_model.dart';
 import 'package:kasir_app/src/data/models/cart_item_model.dart';
 import 'package:kasir_app/src/data/models/transaction_model.dart';
@@ -32,6 +34,7 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   BuildContext? _loadingDialogContext;
   final PrintingService _printingService = getIt<PrintingService>();
+  final GlobalKey<ProductGridState> _mobileGridKey = GlobalKey<ProductGridState>();
   PackageInfo _packageInfo = PackageInfo(
     appName: 'Unknown',
     packageName: 'Unknown',
@@ -159,6 +162,11 @@ class _TransactionPageState extends State<TransactionPage> {
       _loadingDialogContext = null; // Clear the context
     }
 
+    // Kembali ke grid jika halaman pembayaran penuh sedang terbuka.
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+
     // 2. Tampilkan dialog untuk cetak struk
     showDialog(
       context: context,
@@ -212,140 +220,225 @@ class _TransactionPageState extends State<TransactionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => CartBloc(),
-        ),
-        BlocProvider(
-          create: (context) => TransactionBloc(
-            getIt<TransactionRepository>(),
-          ),
-        ),
-      ],
-      child: BlocListener<TransactionBloc, TransactionState>(
-        listener: (context, state) {
-          if (state is TransactionInProgress) {
-            debugPrint('TransactionInProgress state received');
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogContext) {
-                _loadingDialogContext = dialogContext;
-                return const Center(child: CircularProgressIndicator());
-              },
+    return BlocListener<TransactionBloc, TransactionState>(
+      listener: (context, state) {
+        if (state is TransactionInProgress) {
+          debugPrint('TransactionInProgress state received');
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              _loadingDialogContext = dialogContext;
+              return const Center(child: CircularProgressIndicator());
+            },
+          );
+        }
+        if (state is TransactionSuccess) {
+          debugPrint('TransactionSuccess state received');
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await _handleTransactionSuccess(context, state.transaction);
+          });
+        }
+        if (state is TransactionFailure) {
+          debugPrint('TransactionFailure state received: ${state.error}');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_loadingDialogContext != null && _loadingDialogContext!.mounted) {
+              Navigator.pop(_loadingDialogContext!);
+              _loadingDialogContext = null;
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Transaksi Gagal: ${state.error}'), backgroundColor: Colors.red),
             );
-          }
-          if (state is TransactionSuccess) {
-            debugPrint('TransactionSuccess state received');
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              await _handleTransactionSuccess(context, state.transaction);
-            });
-          }
-          if (state is TransactionFailure) {
-            debugPrint('TransactionFailure state received: ${state.error}');
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_loadingDialogContext != null && _loadingDialogContext!.mounted) {
-                Navigator.pop(_loadingDialogContext!);
-                _loadingDialogContext = null;
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Transaksi Gagal: ${state.error}'), backgroundColor: Colors.red),
-              );
-            });
-          }
-        },
-        child: Scaffold(
-            backgroundColor: const Color(0xFFF5F5F7),
-            appBar: AppBar(
-              backgroundColor: Colors.white,
-              elevation: 1,
-              shadowColor: Colors.black.withAlpha(26),
-              actions: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.info_outline, color: Colors.black),
-                        tooltip: 'Tentang Aplikasi',
-                        onPressed: _showAboutDialog,
-                      ),
-                      const SizedBox(width: 8),
-                      // Repositioned PrinterStatusWidget
-                      const PrinterStatusWidget(),
-                      const SizedBox(width: 8), // Spacing between printer status and logout
-                      BlocBuilder<AuthBloc, AuthState>(
-                        builder: (context, state) {
-                          if (state is AuthenticationAuthenticated) {
-                            return IconButton(
-                              icon: const Icon(Icons.logout, color: Colors.black),
-                              tooltip: 'Logout',
-                              onPressed: () {
-                                context.read<AuthBloc>().add(LoggedOut());
-                              },
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      )
-                    ],
-                  ),
+          });
+        }
+      },
+      child: Scaffold(
+          backgroundColor: const Color(0xFFF5F5F7),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 1,
+            shadowColor: Colors.black.withAlpha(26),
+            actions: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.search, color: Colors.black),
+                      tooltip: 'Cari produk',
+                      onPressed: () =>
+                          _mobileGridKey.currentState?.toggleSearch(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.info_outline, color: Colors.black),
+                      tooltip: 'Tentang Aplikasi',
+                      onPressed: _showAboutDialog,
+                    ),
+                    const SizedBox(width: 8),
+                    // Repositioned PrinterStatusWidget
+                    const PrinterStatusWidget(),
+                    const SizedBox(width: 8), // Spacing between printer status and logout
+                    BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        if (state is AuthenticationAuthenticated) {
+                          return IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.black),
+                            tooltip: 'Logout',
+                            onPressed: () {
+                              context.read<AuthBloc>().add(LoggedOut());
+                            },
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    )
+                  ],
                 ),
-              ],
-            ),
-            body: LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth < 600) { // Mobile view
-                  return Column(
-                    children: [
-                      Expanded(
-                        flex: 2, // Give more space to products
-                        child: ProductGrid(),
-                      ),
-                      Expanded(
-                        flex: 1, // Give less space to cart, but still dynamic
-                        child: CartPanel(),
-                      )
-                    ],
-                  );
-                }
-                // Desktop/Tablet view
-                return Row(
+              ),
+            ],
+          ),
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 600) {
+                // HP portrait: grid penuh + tombol Bayar; keranjang jadi halaman penuh.
+                return Column(
                   children: [
                     Expanded(
-                      flex: 2,
-                      child: ProductGrid(),
+                      child: ProductGrid(
+                        key: _mobileGridKey,
+                        showSearchIcon: false,
+                      ),
                     ),
-                    const VerticalDivider(width: 1, color: Color(0xFFE0E0E0)),
-                    Expanded(
-                      flex: 1,
-                      child: CartPanel(),
-                    ),
+                    const _PayBar(),
                   ],
                 );
-              },
-            ),
-        ),
+              }
+              // Desktop/Tablet view
+              return const Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ProductGrid(),
+                  ),
+                  VerticalDivider(width: 1, color: Color(0xFFE0E0E0)),
+                  Expanded(
+                    flex: 1,
+                    child: CartPanel(),
+                  ),
+                ],
+              );
+            },
+          ),
       ),
     );
   }
 }
 
-class ProductGrid extends StatefulWidget {
-  const ProductGrid({super.key});
+/// Bilah bawah HP portrait: ringkas. Keranjang kosong → hilang total agar
+/// grid lega. Ada isi → 1 baris info + tombol Bayar.
+class _PayBar extends StatelessWidget {
+  const _PayBar();
 
   @override
-  State<ProductGrid> createState() => _ProductGridState();
+  Widget build(BuildContext context) {
+    return BlocBuilder<CartBloc, CartState>(
+      builder: (context, cartState) {
+        if (cartState.items.isEmpty) return const SizedBox.shrink();
+        final count = cartState.items.fold<int>(0, (sum, i) => sum + i.quantity);
+        final totalText = NumberFormat.currency(
+          locale: 'id_ID',
+          symbol: 'Rp',
+          decimalDigits: 0,
+        ).format(cartState.total);
+        return SafeArea(
+          top: false,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('$count item',
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(totalText,
+                          style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo)),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const CartPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.shopping_basket_outlined, size: 18),
+                  label: const Text('Bayar',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin {
+/// Halaman keranjang/pembayaran layar penuh (HP portrait).
+class CartPage extends StatelessWidget {
+  const CartPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pembayaran'),
+        backgroundColor: Colors.white,
+      ),
+      body: const CartPanel(),
+    );
+  }
+}
+
+class ProductGrid extends StatefulWidget {
+  const ProductGrid({super.key, this.showSearchIcon = true});
+
+  /// Ikon search di dalam grid. Matikan jika toggle search sudah ada di AppBar.
+  final bool showSearchIcon;
+
+  @override
+  State<ProductGrid> createState() => ProductGridState();
+}
+
+class ProductGridState extends State<ProductGrid> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final Debouncer _debouncer = Debouncer(milliseconds: 500);
   late TabController _tabController;
   List<String> _categories = [];
   String? _selectedCategory;
   late Future<void> _categoriesFuture; // New: Future to track category loading
+  bool _searchOpen = false;
 
   bool _isReordering = false;
   late AnimationController _animationController;
@@ -406,34 +499,67 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
     super.dispose();
   }
 
+  void closeSearch() {
+    _searchController.clear();
+    setState(() => _searchOpen = false);
+    context.read<ProductBloc>().add(LoadProducts(
+          query: '',
+          category: _selectedCategory,
+        ));
+  }
+
+  /// Dipanggil dari tombol search di AppBar.
+  void toggleSearch() {
+    if (_searchOpen) {
+      closeSearch();
+    } else {
+      setState(() => _searchOpen = true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Cari produk...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+        if (_searchOpen)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Cari produk...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: closeSearch,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey[200],
               ),
-              filled: true,
-              fillColor: Colors.grey[200],
+              onChanged: (query) {
+                _debouncer.run(() {
+                  context.read<ProductBloc>().add(LoadProducts(
+                        query: query,
+                        category: _selectedCategory, // Pass selected category
+                      ));
+                });
+              },
             ),
-            onChanged: (query) {
-              _debouncer.run(() {
-                context.read<ProductBloc>().add(LoadProducts(
-                  query: query,
-                  category: _selectedCategory, // Pass selected category
-                ));
-              });
-            },
+          )
+        else if (widget.showSearchIcon)
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Cari produk',
+              onPressed: () => setState(() => _searchOpen = true),
+            ),
           ),
-        ),
         // Wrap TabBar and product grid in a FutureBuilder
         FutureBuilder<void>(
           future: _categoriesFuture,
@@ -478,18 +604,27 @@ class _ProductGridState extends State<ProductGrid> with TickerProviderStateMixin
                             if (displayedProducts.isEmpty) {
                               return const Center(child: Text('Tidak ada produk ditemukan.'));
                             }
-                            return GridView.builder(
-                              padding: const EdgeInsets.all(8.0),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 5,
-                                crossAxisSpacing: 8.0,
-                                mainAxisSpacing: 8.0,
-                                childAspectRatio: 0.7,
-                              ),
-                              itemCount: displayedProducts.length,
-                              itemBuilder: (context, index) {
-                                final product = displayedProducts[index];
-                                return ProductCard(product: product);
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                // Responsif: target lebar kartu ~170dp, min 2 kolom (HP portrait),
+                                // lebih banyak di tablet/desktop.
+                                final columns =
+                                    (constraints.maxWidth / 170).floor().clamp(2, 6);
+                                return GridView.builder(
+                                  padding: const EdgeInsets.all(8.0),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: columns,
+                                    crossAxisSpacing: 8.0,
+                                    mainAxisSpacing: 8.0,
+                                    childAspectRatio: 0.7,
+                                  ),
+                                  itemCount: displayedProducts.length,
+                                  itemBuilder: (context, index) {
+                                    final product = displayedProducts[index];
+                                    return ProductCard(product: product);
+                                  },
+                                );
                               },
                             );
                           } else if (state is ProductError) {
@@ -537,37 +672,26 @@ class ProductCard extends StatelessWidget {
                     );
                   }
 
-                  // Check if the string starts with a common base64 image header
-                  // A typical JPEG base64 string starts with "/9j/"
-                  // A typical PNG base64 string starts with "iVBORw0KGgo"
-                  // A typical GIF base64 string starts with "R0lGOD"
-                  // For simplicity, let's just check for the common JPEG header as seen in the logs.
-                  // A more robust solution might involve trying to parse it as URI first.
-                  if (product.imageUrl!.startsWith('/9j/')) {
-                    try {
-                      final imageData = base64Decode(product.imageUrl!);
-                      return Image.memory(
-                        imageData,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(child: Icon(Icons.broken_image, size: 40)),
-                      );
-                    } catch (e) {
-                      debugPrint('Error decoding base64 image: $e');
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Center(child: Icon(Icons.broken_image, size: 40)),
-                      );
-                    }
-                  } else if (product.imageUrl!.startsWith('http://') || product.imageUrl!.startsWith('https://')) {
+                  // URL jaringan langsung ditampilkan; selain itu coba sebagai
+                  // base64 (JPEG "/9j/", PNG "iVBOR...", GIF "R0lGOD", dsb).
+                  if (product.imageUrl!.startsWith('http://') || product.imageUrl!.startsWith('https://')) {
                     return Image.network(
                       product.imageUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
                           const Center(child: Icon(Icons.broken_image, size: 40)),
                     );
-                  } else {
-                    // Fallback for unrecognized image format
+                  }
+                  try {
+                    final imageData = base64Decode(product.imageUrl!);
+                    return Image.memory(
+                      imageData,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(child: Icon(Icons.broken_image, size: 40)),
+                    );
+                  } catch (e) {
+                    debugPrint('Error decoding base64 image: $e');
                     return Container(
                       color: Colors.grey[200],
                       child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
@@ -612,9 +736,36 @@ class CartPanel extends StatefulWidget {
 class _CartPanelState extends State<CartPanel> {
   final TextEditingController _amountPaidController = TextEditingController();
   double _change = 0.0; // State to hold the calculated change
+  String _paymentMethod = 'Tunai';
+  double? _lastAutofillTotal; // Total terakhir yang diisi otomatis
+  String _lastFieldText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Sinkronkan _change + rebuild tombol untuk SEMUA perubahan field,
+    // termasuk autofill programmatic (onChanged TextField tidak dijamin
+    // terpanggil untuk perubahan programmatic).
+    _amountPaidController.addListener(_syncChangeWithField);
+  }
+
+  void _syncChangeWithField() {
+    if (!mounted) return;
+    final text = _amountPaidController.text;
+    final total = context.read<CartBloc>().state.total;
+    final parsed = double.tryParse(text.replaceAll(RegExp(r'[^\d]'), '')) ?? 0.0;
+    final newChange = parsed - total;
+    // Rebuild juga saat teks berubah walau nominal kembalian sama,
+    // agar tombol PROSES PEMBAYARAN aktif tepat setelah autofill.
+    if (newChange != _change || text != _lastFieldText) {
+      _lastFieldText = text;
+      setState(() => _change = newChange);
+    }
+  }
 
   @override
   void dispose() {
+    _amountPaidController.removeListener(_syncChangeWithField);
     _amountPaidController.dispose();
     super.dispose();
   }
@@ -622,6 +773,38 @@ class _CartPanelState extends State<CartPanel> {
   @override
   Widget build(BuildContext context) {
     final cartState = context.watch<CartBloc>().state;
+
+    // Autofill Jumlah Bayar = total. Hanya timpa jika field kosong atau masih
+    // bernilai hasil autofill sebelumnya (user belum mengubah manual).
+    if (cartState.items.isEmpty) {
+      _change = 0;
+      _lastAutofillTotal = null;
+    } else {
+      final currentParsed = double.tryParse(
+            _amountPaidController.text.replaceAll(RegExp(r'[^\d]'), ''),
+          ) ??
+          0.0;
+      final untouched = _amountPaidController.text.isEmpty ||
+          currentParsed == (_lastAutofillTotal ?? currentParsed);
+      if (untouched && _lastAutofillTotal != cartState.total) {
+        _lastAutofillTotal = cartState.total;
+        final total = cartState.total;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final formatted = NumberFormat.currency(
+            locale: 'id_ID',
+            symbol: '',
+            decimalDigits: 0,
+          ).format(total);
+          _amountPaidController.value = TextEditingValue(
+            text: formatted,
+            selection: TextSelection.collapsed(offset: formatted.length),
+          );
+        });
+      } else if (!untouched) {
+        _change = currentParsed - cartState.total;
+      }
+    }
 
     return Container(
       color: Colors.white,
@@ -686,8 +869,19 @@ class _CartPanelState extends State<CartPanel> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: 'Tunai', label: Text('Tunai'), icon: Icon(Icons.payments_outlined)),
+                      ButtonSegment(value: 'QRIS', label: Text('QRIS'), icon: Icon(Icons.qr_code)),
+                    ],
+                    selected: {_paymentMethod},
+                    onSelectionChanged: (selection) {
+                      setState(() => _paymentMethod = selection.first);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (_paymentMethod == 'Tunai') ...[
                   TextFormField(
                     controller: _amountPaidController,
                     decoration: InputDecoration(
@@ -756,18 +950,35 @@ class _CartPanelState extends State<CartPanel> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  ], // end Tunai section
+                  if (_paymentMethod == 'QRIS') ...[
+                    const Text(
+                      'Pembayaran via QRIS (Dana/GoPay). QR dibuat dengan nominal otomatis — konfirmasi manual setelah cek aplikasi Dana/GoPay.',
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ],
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: cartState.items.isEmpty || _amountPaidController.text.isEmpty || _change < 0
-                ? null
-                : () {
-                    final cleanText = _amountPaidController.text.replaceAll(RegExp(r'[^\d]'), '');
-                    final parsedAmountForConfirmation = double.tryParse(cleanText) ?? 0.0;
-                    _showPaymentConfirmation(context, cartState, parsedAmountForConfirmation);
-                  },
+          if (_paymentMethod == 'Tunai')
+            Builder(
+              builder: (buttonContext) {
+                final paidNow = double.tryParse(
+                      _amountPaidController.text.replaceAll(RegExp(r'[^\d]'), ''),
+                    ) ??
+                    0.0;
+                final canPay = cartState.items.isNotEmpty &&
+                    _amountPaidController.text.isNotEmpty &&
+                    paidNow >= cartState.total;
+                return ElevatedButton(
+                  onPressed: canPay
+                      ? () {
+                          _showPaymentConfirmation(
+                              context, cartState, paidNow);
+                        }
+                      : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.indigo,
               foregroundColor: Colors.white,
@@ -778,7 +989,25 @@ class _CartPanelState extends State<CartPanel> {
               elevation: 0,
             ),
             child: const Text('PROSES PEMBAYARAN', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
+                );
+              },
+            ),
+          if (_paymentMethod == 'QRIS')
+            ElevatedButton(
+              onPressed: cartState.items.isEmpty
+                  ? null
+                  : () => _showQrisDialog(context, cartState),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text('TAMPILKAN QRIS', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
     );
@@ -827,6 +1056,178 @@ class _CartPanelState extends State<CartPanel> {
           ],
         );
       },
+    );
+  }
+
+  void _showQrisDialog(BuildContext context, CartState cartState) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _QrisPaymentDialog(
+        total: cartState.total,
+        onConfirmed: (paymentLabel) {
+          Navigator.pop(dialogContext);
+          context.read<TransactionBloc>().add(
+                ProcessTransaction(
+                  cartItems: cartState.items,
+                  totalAmount: cartState.total,
+                  amountPaid: cartState.total,
+                  change: 0,
+                  cashierId: context.read<AuthBloc>().state is AuthenticationAuthenticated
+                      ? (context.read<AuthBloc>().state as AuthenticationAuthenticated).user.id
+                      : '',
+                  paymentMethod: paymentLabel,
+                ),
+              );
+          _amountPaidController.clear();
+        },
+      ),
+    );
+  }
+}
+
+class _QrisPaymentDialog extends StatefulWidget {
+  final double total;
+  final void Function(String paymentLabel) onConfirmed;
+
+  const _QrisPaymentDialog({required this.total, required this.onConfirmed});
+
+  @override
+  State<_QrisPaymentDialog> createState() => _QrisPaymentDialogState();
+}
+
+class _QrisPaymentDialogState extends State<_QrisPaymentDialog> {
+  final _qris = QrisService();
+  bool _loading = true;
+  String? _danaStatic;
+  String? _gopayStatic;
+  String _wallet = 'Dana';
+  String? _dynamicPayload;
+  String? _error;
+  late DateTime _expiry;
+  Timer? _timer;
+  Duration _remaining = const Duration(minutes: 5);
+
+  @override
+  void initState() {
+    super.initState();
+    _expiry = DateTime.now().add(const Duration(minutes: 5));
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final left = _expiry.difference(DateTime.now());
+      if (left.isNegative) {
+        _timer?.cancel();
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+      setState(() => _remaining = left);
+    });
+    _load();
+  }
+
+  Future<void> _load() async {
+    final dana = await _qris.getStaticQrDana();
+    final gopay = await _qris.getStaticQrGopay();
+    if (!mounted) return;
+    setState(() {
+      _danaStatic = dana;
+      _gopayStatic = gopay;
+      if (dana == null && gopay != null) _wallet = 'GoPay';
+      _loading = false;
+    });
+    _rebuild();
+  }
+
+  void _rebuild() {
+    final statis = _wallet == 'Dana' ? _danaStatic : _gopayStatic;
+    if (statis == null) {
+      setState(() {
+        _dynamicPayload = null;
+        _error = 'QRIS $_wallet belum diatur. Atur di Pengaturan → QRIS.';
+      });
+      return;
+    }
+    try {
+      setState(() {
+        _dynamicPayload = _qris.toDynamic(statis, widget.total);
+        _error = null;
+      });
+    } on FormatException {
+      setState(() {
+        _dynamicPayload = null;
+        _error = 'Payload QRIS $_wallet tidak valid. Periksa Pengaturan → QRIS.';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final amountText = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+        .format(widget.total);
+    final mm = _remaining.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = _remaining.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return AlertDialog(
+      title: const Text('Bayar via QRIS'),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: CircularProgressIndicator(),
+              )
+            else ...[
+              if (_danaStatic != null && _gopayStatic != null)
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'Dana', label: Text('Dana')),
+                    ButtonSegment(value: 'GoPay', label: Text('GoPay')),
+                  ],
+                  selected: {_wallet},
+                  onSelectionChanged: (s) {
+                    setState(() => _wallet = s.first);
+                    _rebuild();
+                  },
+                ),
+              const SizedBox(height: 12),
+              Text(amountText,
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.indigo)),
+              Text('Berlaku $mm:$ss', style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 12),
+              if (_dynamicPayload != null)
+                QrImageView(data: _dynamicPayload!, size: 220)
+              else if (_error != null)
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 8),
+              const Text(
+                'Customer scan QR ini dengan nominal otomatis. Setelah cek pembayaran masuk di aplikasi Dana/GoPay, tap tombol di bawah.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        ElevatedButton(
+          onPressed: _dynamicPayload == null
+              ? null
+              : () => widget.onConfirmed('QRIS $_wallet'),
+          child: const Text('Sudah Dibayar'),
+        ),
+      ],
     );
   }
 }

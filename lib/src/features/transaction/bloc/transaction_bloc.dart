@@ -21,15 +21,25 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     ProcessTransaction event,
     Emitter<TransactionState> emit,
   ) async {
-    debugPrint('TransactionBloc: _onProcessTransaction started');
+    if (event.cartItems.isEmpty) {
+      emit(const TransactionFailure('Keranjang kosong.'));
+      return;
+    }
+    if (event.totalAmount <= 0) {
+      emit(const TransactionFailure('Total tidak valid.'));
+      return;
+    }
+    if (event.amountPaid < event.totalAmount) {
+      emit(const TransactionFailure('Jumlah bayar kurang dari total.'));
+      return;
+    }
     emit(TransactionInProgress());
-    debugPrint('TransactionBloc: Emitted TransactionInProgress');
     try {
       final newTransaction = TransactionModel(
         id: const Uuid().v4(),
         items: event.cartItems,
         totalAmount: event.totalAmount,
-        paymentMethod: 'Tunai', // Default to Tunai for cash transactions
+        paymentMethod: event.paymentMethod,
         amountPaid: event.amountPaid,
         change: event.change,
         cashierId: event.cashierId,

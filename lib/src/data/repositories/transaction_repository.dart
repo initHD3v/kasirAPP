@@ -77,7 +77,31 @@ class TransactionRepository {
   Future<void> addTransaction(TransactionModel transaction) async {
     final db = await _databaseService.database;
 
+    if (transaction.items.isEmpty) {
+      throw Exception('Keranjang kosong.');
+    }
+
     await db.transaction((txn) async {
+      // Validasi stok dulu agar tidak oversell
+      for (var item in transaction.items) {
+        final currentStockResult = await txn.query(
+          'products',
+          columns: ['stock'],
+          where: 'id = ?',
+          whereArgs: [item.product.id],
+        );
+
+        if (currentStockResult.isEmpty) {
+          throw Exception('Produk ${item.product.name} tidak ditemukan.');
+        }
+        final currentStock = (currentStockResult.first['stock'] as num?)?.toInt() ?? 0;
+        if (currentStock < item.quantity) {
+          throw Exception(
+            'Stok ${item.product.name} kurang (sisa $currentStock, diminta ${item.quantity}).',
+          );
+        }
+      }
+
       // 1. Masukkan data transaksi ke tabel 'transactions'
       await txn.insert(
         'transactions',
@@ -87,7 +111,6 @@ class TransactionRepository {
 
       // 2. Perbarui stok untuk setiap produk yang ada di dalam transaksi
       for (var item in transaction.items) {
-        // Ambil stok saat ini terlebih dahulu untuk memastikan tidak minus
         final currentStockResult = await txn.query(
           'products',
           columns: ['stock'],
@@ -95,17 +118,13 @@ class TransactionRepository {
           whereArgs: [item.product.id],
         );
 
-        if (currentStockResult.isNotEmpty) {
-          final currentStock = currentStockResult.first['stock'] as int;
-          final newStock = currentStock - item.quantity;
-
-          await txn.update(
-            'products',
-            {'stock': newStock > 0 ? newStock : 0}, // Pastikan stok tidak menjadi negatif
-            where: 'id = ?',
-            whereArgs: [item.product.id],
-          );
-        }
+        final currentStock = (currentStockResult.first['stock'] as num?)?.toInt() ?? 0;
+        await txn.update(
+          'products',
+          {'stock': currentStock - item.quantity},
+          where: 'id = ?',
+          whereArgs: [item.product.id],
+        );
       }
     });
   }

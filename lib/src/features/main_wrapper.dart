@@ -19,28 +19,6 @@ class MainWrapper extends StatefulWidget {
 }
 
 class _MainWrapperState extends State<MainWrapper> {
-  late DateTime _currentDateTime;
-  late Timer _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentDateTime = DateTime.now();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _currentDateTime = DateTime.now();
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
   // Function to get the title based on the current index
   String _getTitleForIndex(int index) {
     switch (index) {
@@ -75,13 +53,7 @@ class _MainWrapperState extends State<MainWrapper> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    DateFormat('EEEE, dd MMMM yyyy, HH:mm:ss', 'id_ID').format(_currentDateTime),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  const _ClockText(),
                 ],
               )
             : Text(_getTitleForIndex(widget.navigationShell.currentIndex)),
@@ -162,6 +134,41 @@ class _MainWrapperState extends State<MainWrapper> {
           );
         },
       ),
+    );
+  }
+}
+
+class _ClockText extends StatefulWidget {
+  const _ClockText();
+
+  @override
+  State<_ClockText> createState() => _ClockTextState();
+}
+
+class _ClockTextState extends State<_ClockText> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      DateFormat('EEEE, dd MMMM yyyy, HH:mm:ss', 'id_ID').format(_now),
+      style: const TextStyle(fontSize: 12, color: Colors.grey),
     );
   }
 }

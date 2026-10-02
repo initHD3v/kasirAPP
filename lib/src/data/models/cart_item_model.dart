@@ -45,8 +45,8 @@ class CartItem extends Equatable {
   factory CartItem.fromMap(Map<String, dynamic> map) {
     return CartItem(
       product: Product.fromMap(map['product'] as Map<String, dynamic>),
-      quantity: map['quantity'] as int,
-      costAtSale: map['costAtSale'] as double,
+      quantity: (map['quantity'] as num).toInt(),
+      costAtSale: (map['costAtSale'] as num).toDouble(),
     );
   }
 }

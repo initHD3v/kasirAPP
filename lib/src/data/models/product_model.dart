@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -7,8 +5,8 @@ class Product {
   final String id;
   final String name;
   final double price; // Harga jual
-  final double cost;  // Harga beli/modal
-  
+  final double cost; // Harga beli/modal
+  final int stock;
   final String? category;
   final String? imageUrl;
 
@@ -17,7 +15,7 @@ class Product {
     required this.name,
     required this.price,
     required this.cost,
-    
+    this.stock = 0,
     this.category,
     this.imageUrl,
   });
@@ -28,7 +26,7 @@ class Product {
       'name': name,
       'price': price,
       'cost': cost,
-      
+      'stock': stock,
       'category': category,
       'image_url': imageUrl,
     };
@@ -38,9 +36,9 @@ class Product {
     return Product(
       id: map['id'] as String,
       name: map['name'] as String,
-      price: map['price'] as double,
-      cost: map['cost'] as double, // Pastikan ini ada di map
-      
+      price: (map['price'] as num).toDouble(),
+      cost: (map['cost'] as num?)?.toDouble() ?? 0.0,
+      stock: (map['stock'] as num?)?.toInt() ?? 0,
       category: map['category'] as String?,
       imageUrl: map['image_url'] as String?,
     );
@@ -51,7 +49,7 @@ class Product {
     String? name,
     double? price,
     double? cost,
-    
+    int? stock,
     String? category,
     String? imageUrl,
   }) {
@@ -60,10 +58,9 @@ class Product {
       name: name ?? this.name,
       price: price ?? this.price,
       cost: cost ?? this.cost,
-      
+      stock: stock ?? this.stock,
       category: category ?? this.category,
       imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }
-

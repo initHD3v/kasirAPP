@@ -227,7 +227,7 @@ class PrintingService {
     ]);
     bytes += generator.feed(1);
     bytes += generator.row([
-      PosColumn(text: 'TUNAI', width: 6), // Assuming cash payment, or could use transaction.paymentMethod
+      PosColumn(text: transaction.paymentMethod.toUpperCase(), width: 6),
       PosColumn(text: currencyFormatter.format(transaction.amountPaid), width: 6, styles: PosStyles(align: PosAlign.right)),
     ]);
     bytes += generator.row([

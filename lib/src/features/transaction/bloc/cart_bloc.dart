@@ -67,17 +67,21 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
   void _onReorderCartItems(ReorderCartItems event, Emitter<CartState> emit) {
     final List<CartItem> updatedItems = List.from(state.items);
-    
-    // Adjust newIndex if it's moving to a lower index
-    int newIndexAdjusted = event.newIndex; // Create a mutable copy
 
-    // Adjust newIndex if it's moving to a lower index
-    if (event.oldIndex < newIndexAdjusted) { // Use the mutable copy
-      newIndexAdjusted -= 1; // Modify the mutable copy
+    if (event.oldIndex < 0 ||
+        event.oldIndex >= updatedItems.length ||
+        event.newIndex < 0 ||
+        event.newIndex > updatedItems.length) {
+      return;
+    }
+
+    int newIndexAdjusted = event.newIndex;
+    if (event.oldIndex < newIndexAdjusted) {
+      newIndexAdjusted -= 1;
     }
 
     final CartItem item = updatedItems.removeAt(event.oldIndex);
-    updatedItems.insert(event.newIndex, item);
+    updatedItems.insert(newIndexAdjusted.clamp(0, updatedItems.length), item);
 
     _updateState(emit, updatedItems);
   }

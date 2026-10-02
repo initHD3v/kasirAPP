@@ -5,7 +5,10 @@ import 'package:kasir_app/src/core/services/database_service.dart';
 import 'package:kasir_app/src/core/services/printing_service.dart';
 import 'src/core/service_locator.dart';
 import 'package:kasir_app/src/data/repositories/product_repository.dart';
+import 'package:kasir_app/src/data/repositories/transaction_repository.dart';
 import 'package:kasir_app/src/features/products/bloc/product_bloc.dart';
+import 'package:kasir_app/src/features/transaction/bloc/cart_bloc.dart';
+import 'package:kasir_app/src/features/transaction/bloc/transaction_bloc.dart';
 import 'package:kasir_app/src/features/products/bloc/product_event.dart';
 import 'package:kasir_app/src/features/auth/bloc/auth_bloc.dart';
 import 'package:kasir_app/src/data/repositories/auth_repository.dart'; // Add this import
@@ -29,10 +32,20 @@ class MyApp extends StatelessWidget {
     return BlocProvider(
       create: (context) => AuthBloc(getIt<AuthRepository>())..add(AppStarted()),
       child: Builder(builder: (context) {
-        return BlocProvider(
-          create: (context) => ProductBloc(
-            getIt<ProductRepository>(),
-          )..add(LoadProducts()),
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (context) => ProductBloc(
+                getIt<ProductRepository>(),
+              )..add(LoadProducts()),
+            ),
+            BlocProvider(create: (context) => CartBloc()),
+            BlocProvider(
+              create: (context) => TransactionBloc(
+                getIt<TransactionRepository>(),
+              ),
+            ),
+          ],
           child: MaterialApp.router(
             title: 'Aplikasi Kasir',
             debugShowCheckedModeBanner: false,
