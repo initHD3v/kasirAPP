@@ -113,7 +113,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 ),
                 const SizedBox(height: 10), // Added spacing
                 const Text( // New line for updates
-                  'Pembaruan Terbaru (v1.1.0): Pembayaran QRIS manual (Dana/GoPay), 30 produk bawaan, UI portrait HP baru, dan perbaikan stabilitas.',
+                  'Pembaruan Terbaru (v1.1.1): Ikon & nama MDKASIR, dark mode ikut sistem, polish dashboard portrait.',
                   style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
                   textAlign: TextAlign.justify,
                 ),
@@ -253,9 +253,8 @@ class _TransactionPageState extends State<TransactionPage> {
         }
       },
       child: Scaffold(
-          backgroundColor: const Color(0xFFF5F5F7),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
             elevation: 1,
             shadowColor: Colors.black.withAlpha(26),
             actions: [
@@ -264,13 +263,13 @@ class _TransactionPageState extends State<TransactionPage> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.search, color: Colors.black),
+                      icon: const Icon(Icons.search),
                       tooltip: 'Cari produk',
                       onPressed: () =>
                           _mobileGridKey.currentState?.toggleSearch(),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.info_outline, color: Colors.black),
+                      icon: const Icon(Icons.info_outline),
                       tooltip: 'Tentang Aplikasi',
                       onPressed: _showAboutDialog,
                     ),
@@ -282,7 +281,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       builder: (context, state) {
                         if (state is AuthenticationAuthenticated) {
                           return IconButton(
-                            icon: const Icon(Icons.logout, color: Colors.black),
+                            icon: const Icon(Icons.logout),
                             tooltip: 'Logout',
                             onPressed: () {
                               context.read<AuthBloc>().add(LoggedOut());
@@ -354,9 +353,9 @@ class _PayBar extends StatelessWidget {
           top: false,
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
             ),
             child: Row(
               children: [
@@ -414,7 +413,6 @@ class CartPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pembayaran'),
-        backgroundColor: Colors.white,
       ),
       body: const CartPanel(),
     );
@@ -539,7 +537,7 @@ class ProductGridState extends State<ProductGrid> with TickerProviderStateMixin 
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[200],
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               ),
               onChanged: (query) {
                 _debouncer.run(() {
@@ -576,7 +574,6 @@ class ProductGridState extends State<ProductGrid> with TickerProviderStateMixin 
                     PreferredSize(
                       preferredSize: const Size.fromHeight(kToolbarHeight),
                       child: AppBar(
-                        backgroundColor: Colors.white,
                         elevation: 0,
                         flexibleSpace: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -667,7 +664,7 @@ class ProductCard extends StatelessWidget {
                 child: () {
                   if (product.imageUrl == null || product.imageUrl!.isEmpty) {
                     return Container(
-                      color: Colors.grey[200],
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
                     );
                   }
@@ -693,7 +690,7 @@ class ProductCard extends StatelessWidget {
                   } catch (e) {
                     debugPrint('Error decoding base64 image: $e');
                     return Container(
-                      color: Colors.grey[200],
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: const Center(child: Icon(Icons.image_not_supported, size: 40)),
                     );
                   }
@@ -807,7 +804,7 @@ class _CartPanelState extends State<CartPanel> {
     }
 
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1247,7 +1244,7 @@ class CartItemTile extends StatelessWidget {
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: const Icon(Icons.shopping_basket_outlined, color: Colors.indigo),
             ),
             const SizedBox(width: 12),
@@ -1263,7 +1260,9 @@ class CartItemTile extends StatelessWidget {
                   ),
                   Text(
                     'Rp ${item.product.price.toStringAsFixed(0)}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -1334,11 +1333,14 @@ class CartTotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-        Text('Rp ${amount.toStringAsFixed(0)}', style: TextStyle(fontSize: 16, color: Colors.grey[800])),
+        Text(label,
+            style: TextStyle(fontSize: 16, color: scheme.onSurfaceVariant)),
+        Text('Rp ${amount.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 16, color: scheme.onSurface)),
       ],
     );
   }

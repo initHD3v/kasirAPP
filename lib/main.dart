@@ -54,6 +54,14 @@ class MyApp extends StatelessWidget {
               useMaterial3: true,
               scaffoldBackgroundColor: const Color(0xFFF5F5F7),
             ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.indigo,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+            ),
+            themeMode: ThemeMode.system,
             // Gunakan router yang sudah mendengarkan AuthBloc
             routerConfig: AppRouter(context.read<AuthBloc>()).router,
           ),

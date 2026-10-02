@@ -14,7 +14,6 @@ class OverviewView extends StatelessWidget {
     return BlocProvider(
       create: (context) => DashboardBloc(getIt<TransactionRepository>())..add(LoadDashboardData()),
       child: Scaffold(
-        backgroundColor: Colors.grey[100],
         body: RefreshIndicator(
           onRefresh: () async {
              context.read<DashboardBloc>().add(LoadDashboardData());
@@ -92,7 +91,7 @@ class _KpiCard extends StatelessWidget {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -102,16 +101,26 @@ class _KpiCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(icon, color: color, size: 28),
+                const SizedBox(width: 8),
+                Icon(icon, color: color, size: 24),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface),
+              ),
             ),
           ],
         ),
@@ -161,6 +170,9 @@ class _WeeklySalesChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxVal = weeklySales.isEmpty
+        ? 0.0
+        : weeklySales.map((e) => e.value).reduce((a, b) => a > b ? a : b);
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -171,15 +183,15 @@ class _WeeklySalesChart extends StatelessWidget {
           children: [
             const Text(
               'Pendapatan 7 Hari Terakhir',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             SizedBox(
-              height: 250,
+              height: 220,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: weeklySales.map((e) => e.value).reduce((a, b) => a > b ? a : b) * 1.2, // Add 20% buffer
+                  maxY: maxVal <= 0 ? 10 : maxVal * 1.2, // Guard data kosong/nol
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
@@ -247,7 +259,7 @@ class _WeeklySalesChart extends StatelessWidget {
                                     begin: Alignment.bottomCenter,
                                     end: Alignment.topCenter,
                                   ),
-                                  width: 20,
+                                  width: 16,
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(6),
                                     topRight: Radius.circular(6),

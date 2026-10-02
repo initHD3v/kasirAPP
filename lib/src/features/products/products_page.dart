@@ -48,7 +48,6 @@ class _ProductsPageState extends State<ProductsPage> {
     return Scaffold(
         appBar: AppBar(
           title: const Text('Manajemen Produk'),
-          backgroundColor: Colors.white,
           elevation: 1,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),

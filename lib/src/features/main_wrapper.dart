@@ -58,7 +58,6 @@ class _MainWrapperState extends State<MainWrapper> {
               )
             : Text(_getTitleForIndex(widget.navigationShell.currentIndex)),
         centerTitle: true,
-        backgroundColor: Colors.white,
         elevation: 1,
         actions: const [
           SizedBox(width: 8),

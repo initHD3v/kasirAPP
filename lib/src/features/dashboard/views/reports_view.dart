@@ -61,56 +61,47 @@ class _ReportsViewState extends State<ReportsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                  SegmentedButton<ReportType>(
-                    segments: const [
-                      ButtonSegment(value: ReportType.daily, label: Text('Harian')),
-                      ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
-                      ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
-                    ],
-                    selected: {_selectedReportType},
-                    onSelectionChanged: (newSelection) {
-                      setState(() {
-                        _selectedReportType = newSelection.first;
-                      });
-                      final now = DateTime.now();
-                      DateTime startTime;
-                      final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-                      switch (_selectedReportType) {
-                        case ReportType.daily:
-                          startTime = DateTime(now.year, now.month, now.day);
-                          break;
-                        case ReportType.weekly:
-                          startTime = now.subtract(const Duration(days: 6));
-                          break;
-                        case ReportType.monthly:
-                          startTime = DateTime(now.year, now.month, 1);
-                          break;
-                      }
-                      context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime, reportType: _selectedReportType));
-                    },
-                    style: SegmentedButton.styleFrom(
-                      foregroundColor: Colors.indigo,
-                      selectedForegroundColor: Colors.white,
-                      selectedBackgroundColor: Colors.indigo,
-                      side: const BorderSide(color: Colors.indigo),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                    tooltip: 'Hapus Semua Transaksi',
-                    onPressed: () {
-                      _showDeleteAllConfirmation(context);
-                    },
-                  ),
+            SegmentedButton<ReportType>(
+              segments: const [
+                ButtonSegment(value: ReportType.daily, label: Text('Harian')),
+                ButtonSegment(value: ReportType.weekly, label: Text('Mingguan')),
+                ButtonSegment(value: ReportType.monthly, label: Text('Bulanan')),
               ],
+              selected: {_selectedReportType},
+              onSelectionChanged: (newSelection) {
+                setState(() {
+                  _selectedReportType = newSelection.first;
+                });
+                final now = DateTime.now();
+                DateTime startTime;
+                final endTime = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+                switch (_selectedReportType) {
+                  case ReportType.daily:
+                    startTime = DateTime(now.year, now.month, now.day);
+                    break;
+                  case ReportType.weekly:
+                    startTime = now.subtract(const Duration(days: 6));
+                    break;
+                  case ReportType.monthly:
+                    startTime = DateTime(now.year, now.month, 1);
+                    break;
+                }
+                context.read<ReportsBloc>().add(LoadReports(startTime: startTime, endTime: endTime, reportType: _selectedReportType));
+              },
+              style: SegmentedButton.styleFrom(
+                foregroundColor: Colors.indigo,
+                selectedForegroundColor: Colors.white,
+                selectedBackgroundColor: Colors.indigo,
+                side: const BorderSide(color: Colors.indigo),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
             const SizedBox(height: 24),
-            ReportContent(reportType: _selectedReportType),
+            ReportContent(
+              reportType: _selectedReportType,
+              onDeleteAll: () => _showDeleteAllConfirmation(context),
+            ),
           ],
         ),
       ),
@@ -120,8 +111,9 @@ class _ReportsViewState extends State<ReportsView> {
 
 class ReportContent extends StatefulWidget {
   final ReportType reportType;
+  final VoidCallback onDeleteAll;
 
-  const ReportContent({super.key, required this.reportType});
+  const ReportContent({super.key, required this.reportType, required this.onDeleteAll});
 
   @override
   State<ReportContent> createState() => _ReportContentState();
@@ -166,9 +158,13 @@ class _ReportContentState extends State<ReportContent> {
     return BlocBuilder<ReportsBloc, ReportsState>(
       builder: (context, state) {
         if (state is ReportsLoading) {
+          final scheme = Theme.of(context).colorScheme;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final placeholder = scheme.surfaceContainerHighest;
           return Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
+            baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            highlightColor:
+                isDark ? Colors.grey[700]! : Colors.grey[100]!,
             child: Column(
               children: [
                 Row(
@@ -177,7 +173,7 @@ class _ReportContentState extends State<ReportContent> {
                       child: Container(
                         height: 100,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: placeholder,
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
@@ -187,7 +183,7 @@ class _ReportContentState extends State<ReportContent> {
                       child: Container(
                         height: 100,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: placeholder,
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
@@ -198,7 +194,7 @@ class _ReportContentState extends State<ReportContent> {
                 Container(
                   height: 200,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: placeholder,
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -207,7 +203,7 @@ class _ReportContentState extends State<ReportContent> {
                 Container(
                   height: 20,
                   width: double.infinity,
-                  color: Colors.white,
+                  color: placeholder,
                   margin: const EdgeInsets.only(bottom: 16),
                 ),
                 ListView.builder(
@@ -216,7 +212,7 @@ class _ReportContentState extends State<ReportContent> {
                   itemCount: 3, // Show a few placeholder items
                   itemBuilder: (context, index) => Container(
                     height: 60,
-                    color: Colors.white,
+                    color: placeholder,
                     margin: const EdgeInsets.symmetric(vertical: 4),
                   ),
                 ),
@@ -268,9 +264,12 @@ class _ReportContentState extends State<ReportContent> {
                   ),
                 const SizedBox(height: 24),
                 // Best Selling Products
-                const Text(
+                Text(
                   'Produk Terlaris',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const Divider(height: 20, thickness: 1),
                 if (state.bestSellingProducts.isEmpty)
@@ -311,9 +310,22 @@ class _ReportContentState extends State<ReportContent> {
                   ),
                 const SizedBox(height: 24),
                 // Transaction List Header
-                const Text(
-                  'Detail Transaksi',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Detail Transaksi',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                      tooltip: 'Hapus Semua Transaksi',
+                      onPressed: widget.onDeleteAll,
+                    ),
+                  ],
                 ),
                 const Divider(height: 20, thickness: 1),
                 // Transaction List
@@ -386,7 +398,7 @@ class SummaryCard extends StatelessWidget {
       elevation: 4, // Increased elevation for more depth
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // More rounded corners
       child: Padding(
-        padding: const EdgeInsets.all(20.0), // Increased padding
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -396,16 +408,26 @@ class SummaryCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(color: Colors.grey[700], fontSize: 16), // Slightly darker grey, larger font
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(icon, color: color, size: 28), // Larger icon
+                const SizedBox(width: 8),
+                Icon(icon, color: color, size: 24),
               ],
             ),
-            const SizedBox(height: 12), // Increased spacing
-            Text(
-              value,
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87), // Larger, bolder text
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface),
+              ),
             ),
           ],
         ),
